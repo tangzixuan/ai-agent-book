@@ -18,6 +18,51 @@ def _reasoning_safe_temperature(model, requested=1.0):
     return 1 if ("kimi-k3" in m or "gpt-5" in m) else requested
 
 
+def map_model_to_openrouter(model: str) -> str:
+    """Map a bare model id to an OpenRouter model id.
+    - ids already containing '/' -> left as-is
+    - gpt-*/o1-*/o3-*/o4-* -> 'openai/<id>'
+    - claude-* -> anthropic Claude (opus/sonnet/haiku)
+    - other native ids (kimi-*, doubao-*, ...) are NOT reliably on OpenRouter,
+      so fall back to OPENROUTER_MODEL or a safe default that always works.
+    """
+    m = (model or "").strip()
+    if "/" in m:
+        return m
+    ml = m.lower()
+    if ml.startswith(("gpt-", "o1-", "o3-", "o4-")):
+        return "openai/" + m
+    if ml.startswith("claude-"):
+        if "sonnet" in ml:
+            return "anthropic/claude-sonnet-4.6"
+        if "haiku" in ml:
+            return "anthropic/claude-haiku-4.5"
+        return "anthropic/claude-opus-4.8"
+    return os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
+
+
+def resolve_llm_backend(primary_key: str, primary_base_url: str, model: str):
+    """Universal OpenRouter fallback for LLM backend resolution.
+
+    Returns (api_key, base_url, model, using_openrouter).
+    - If the primary provider key is present, behavior is unchanged.
+    - Else if OPENROUTER_API_KEY is present, route through OpenRouter and map
+      the model id to an OpenRouter id.
+    - Else raise a clear error listing the accepted keys.
+    """
+    if primary_key:
+        return primary_key, primary_base_url, model, False
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if openrouter_key:
+        base_url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+        return openrouter_key, base_url, map_model_to_openrouter(model), True
+    raise ValueError(
+        "No API key found. Set a provider key "
+        "(SILICONFLOW_API_KEY/ARK_API_KEY/MOONSHOT_API_KEY) or "
+        "OPENROUTER_API_KEY (universal fallback)."
+    )
+
+
 class Config:
     """Configuration settings for the agent"""
     

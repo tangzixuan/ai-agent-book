@@ -103,6 +103,14 @@ python main.py --provider kimi
 
 # Or specify a custom model
 python main.py --model doubao-seed-1-6-thinking-250715
+
+# Universal OpenRouter fallback: if the provider key above is missing/invalid
+# but OPENROUTER_API_KEY is set, requests are routed through OpenRouter and the
+# model id is mapped automatically (bare gpt-*/o1-* -> openai/*, claude-* ->
+# anthropic/*, other native ids -> OPENROUTER_MODEL or openai/gpt-4o-mini).
+export OPENROUTER_API_KEY=sk-or-v1-your-key-here
+python main.py                       # falls back to OpenRouter when ARK_API_KEY is unset
+python main.py --provider openrouter # or use OpenRouter directly
 ```
 
 ### 3. Testing Kimi Integration

@@ -331,28 +331,38 @@ class ContextAwareAgent:
         """
         self.provider = provider.lower()
         self.verbose = verbose
-        
-        # Configure client based on provider
-        if self.provider == "siliconflow":
-            self.client = OpenAI(
-                api_key=api_key,
-                base_url="https://api.siliconflow.cn/v1"
+
+        # Provider -> (base_url, default_model)
+        provider_defaults = {
+            "siliconflow": ("https://api.siliconflow.cn/v1", "Qwen/Qwen3.5-397B-A17B"),
+            "doubao": ("https://ark.cn-beijing.volces.com/api/v3", "doubao-seed-1-6-thinking-250715"),
+            "kimi": ("https://api.moonshot.cn/v1", "kimi-k3"),
+            "moonshot": ("https://api.moonshot.cn/v1", "kimi-k3"),
+            "openrouter": ("https://openrouter.ai/api/v1", "openai/gpt-4o-mini"),
+        }
+        if self.provider not in provider_defaults:
+            raise ValueError(
+                f"Unsupported provider: {provider}. Use 'siliconflow', 'doubao', "
+                "'kimi', 'moonshot', or 'openrouter'"
             )
-            self.model = model or "Qwen/Qwen3.5-397B-A17B"
-        elif self.provider == "doubao":
-            self.client = OpenAI(
-                api_key=api_key,
-                base_url="https://ark.cn-beijing.volces.com/api/v3"
+        base_url, default_model = provider_defaults[self.provider]
+        resolved_model = model or default_model
+
+        # Universal OpenRouter fallback: if the primary provider key is missing
+        # but OPENROUTER_API_KEY is present, route through OpenRouter with a
+        # mapped model id. Behavior is unchanged when the provider key is set.
+        from config import resolve_llm_backend
+        resolved_key, resolved_base_url, self.model, self.using_openrouter = \
+            resolve_llm_backend(api_key, base_url, resolved_model)
+        if self.using_openrouter:
+            logger.info(
+                f"{self.provider} API key not set; routing via OpenRouter "
+                f"(model: {self.model})"
             )
-            self.model = model or "doubao-seed-1-6-thinking-250715"
-        elif self.provider == "kimi" or self.provider == "moonshot":
-            self.client = OpenAI(
-                api_key=api_key,
-                base_url="https://api.moonshot.cn/v1"
-            )
-            self.model = model or "kimi-k3"
-        else:
-            raise ValueError(f"Unsupported provider: {provider}. Use 'siliconflow', 'doubao', 'kimi', or 'moonshot'")
+        self.client = OpenAI(
+            api_key=resolved_key,
+            base_url=resolved_base_url
+        )
         
         self.context_mode = context_mode
         self.trajectory = AgentTrajectory(context_mode=context_mode)

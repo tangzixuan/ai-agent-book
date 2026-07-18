@@ -5,6 +5,7 @@
 行动，观察搜索结果后继续思考，直到综合出最终答案。运行时会逐步打印 ReAct 轨迹。
 """
 
+import os
 import sys
 import json
 import argparse
@@ -184,8 +185,9 @@ def main(argv: Optional[list] = None):
 
     # 在线模式：需要 API Key
     api_key = Config.get_api_key(args.api_key)
-    if not api_key:
+    if not api_key and not os.getenv("OPENROUTER_API_KEY"):
         Config.validate()
+        print("提示：也可设置 OPENROUTER_API_KEY 作为通用兜底。")
         sys.exit(1)
 
     # 创建 Agent

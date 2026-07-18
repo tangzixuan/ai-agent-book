@@ -86,13 +86,21 @@ class WebSearchAgent:
             verbose: 是否实时打印 ReAct 轨迹（思考/行动/观察）
         """
         # 优先使用传入的 api_key，否则从环境变量获取
-        api_key = api_key or os.environ.get("MOONSHOT_API_KEY")
-        if not api_key:
-            raise ValueError("API key is required. Set MOONSHOT_API_KEY environment variable or pass api_key parameter.")
+        # Moonshot 为主，OpenRouter 为通用兜底（当 MOONSHOT_API_KEY 缺失时启用）
+        from config import resolve_llm_backend
+        primary_key = api_key or os.environ.get("MOONSHOT_API_KEY") or os.environ.get("KIMI_API_KEY")
+        resolved_key, resolved_base_url, model, self.using_openrouter = \
+            resolve_llm_backend(primary_key, base_url, model)
+        if self.using_openrouter:
+            logger.info(
+                f"MOONSHOT_API_KEY 未设置，改用 OpenRouter 兜底（模型: {model}）。"
+                "注意：Moonshot 内置 $web_search 工具在 OpenRouter 上不可用，"
+                "此模式下模型将仅凭自身知识作答，不做实时联网搜索。"
+            )
 
         self.client = OpenAI(
-            api_key=api_key,
-            base_url=base_url
+            api_key=resolved_key,
+            base_url=resolved_base_url
         )
         self.model = model
         self.verbose = verbose
@@ -112,8 +120,12 @@ class WebSearchAgent:
     def _get_tools(self) -> List[Dict[str, Any]]:
         """
         定义可用的工具
-        根据 Kimi 文档，$web_search 是内置工具
+        根据 Kimi 文档，$web_search 是内置工具（仅 Moonshot 支持）。
+        经 OpenRouter 兜底时该内置工具不可用，返回空列表以避免 400 错误，
+        此时模型仅凭自身知识作答。
         """
+        if getattr(self, "using_openrouter", False):
+            return []
         return [
             {
                 "type": "builtin_function",
@@ -151,15 +163,18 @@ class WebSearchAgent:
         Returns:
             API 响应的 Choice 对象
         """
-        completion = self.client.chat.completions.create(
+        kwargs = dict(
             model=self.model,
             messages=messages,
             temperature=_reasoning_safe_temperature(self.model, self.temperature),
             # Kimi K3 是推理模型，会先产出较长的 reasoning_content，需要给最终回答
             # 留足输出预算（Moonshot 要求 max_tokens>=2048），否则答案可能被截断为空。
             max_tokens=self.max_tokens,
-            tools=self._get_tools()
         )
+        tools = self._get_tools()
+        if tools:  # OpenRouter 兜底时无内置搜索工具，省略 tools 参数
+            kwargs["tools"] = tools
+        completion = self.client.chat.completions.create(**kwargs)
         return completion.choices[0]
 
     def search_and_answer(self, user_question: str, max_iterations: int = 5) -> str:

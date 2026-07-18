@@ -52,11 +52,12 @@ def run_llm_demo():
     
     # Check API key
     api_key = os.getenv("MOONSHOT_API_KEY")
-    if not api_key:
+    if not api_key and not os.getenv("OPENROUTER_API_KEY"):
         print("\n❌ Error: MOONSHOT_API_KEY not set.")
         print("Please set your Kimi API key:")
         print("  export MOONSHOT_API_KEY='your-key-here'")
         print("\nGet your key at: https://platform.moonshot.cn/")
+        print("Or set OPENROUTER_API_KEY as a universal fallback.")
         return
     
     print("\n✅ API key found!")

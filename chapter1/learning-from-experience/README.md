@@ -92,6 +92,14 @@ Or create a `.env` file:
 echo "MOONSHOT_API_KEY=your-api-key-here" > .env
 ```
 
+**通用兜底（OpenRouter）**：若未设置 `MOONSHOT_API_KEY` 但设置了 `OPENROUTER_API_KEY`，
+LLM 部分会自动改走 OpenRouter。由于 Kimi 模型在 OpenRouter 上不稳定可用，兜底时会使用
+`OPENROUTER_MODEL`（默认 `openai/gpt-4o-mini`）：
+```bash
+export OPENROUTER_API_KEY=sk-or-v1-your-key-here
+python quick_demo.py   # MOONSHOT_API_KEY 缺失时自动经 OpenRouter 运行
+```
+
 ### Running the Experiment
 
 #### Quick Demo (See LLM Learning in Action)

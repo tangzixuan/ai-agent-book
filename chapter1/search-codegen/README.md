@@ -49,6 +49,11 @@ DEFAULT_TEMPERATURE=0.3
 DEFAULT_MAX_TOKENS=4000
 ```
 
+> This experiment uses OpenRouter as its **primary** backend, so no fallback is
+> needed. The same `OPENROUTER_API_KEY` doubles as the **universal fallback** for
+> the other chapter1 experiments (`context`, `learning-from-experience`,
+> `web-search-agent`) when their direct provider key is missing.
+
 ### 3. Run the Agent
 
 #### Interactive Mode (Recommended)

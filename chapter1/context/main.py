@@ -1068,9 +1068,9 @@ def main():
     )
     parser.add_argument(
         "--provider",
-        choices=["siliconflow", "doubao", "kimi", "moonshot"],
+        choices=["siliconflow", "doubao", "kimi", "moonshot", "openrouter"],
         default="doubao",
-        help="LLM 提供商（默认：doubao）"
+        help="LLM 提供商（默认：doubao；openrouter 或缺失主 key 时经 OpenRouter 兜底）"
     )
     parser.add_argument(
         "--model",
@@ -1090,27 +1090,37 @@ def main():
 
     args = parser.parse_args()
     
-    # Get API key based on provider
+    # Get API key based on provider (with universal OpenRouter fallback)
     if args.api_key:
         api_key = args.api_key
+    elif args.provider == "openrouter":
+        api_key = os.getenv("OPENROUTER_API_KEY")
     elif args.provider == "doubao":
         api_key = os.getenv("ARK_API_KEY")
-        if not api_key:
-            logger.error("Please provide API key via --api-key or ARK_API_KEY environment variable")
-            sys.exit(1)
     elif args.provider == "siliconflow":
         api_key = os.getenv("SILICONFLOW_API_KEY")
-        if not api_key:
-            logger.error("Please provide API key via --api-key or SILICONFLOW_API_KEY environment variable")
-            sys.exit(1)
     elif args.provider in ["kimi", "moonshot"]:
         api_key = os.getenv("MOONSHOT_API_KEY")
-        if not api_key:
-            logger.error("Please provide API key via --api-key or MOONSHOT_API_KEY environment variable")
-            sys.exit(1)
     else:
         logger.error(f"Unknown provider: {args.provider}")
         sys.exit(1)
+
+    # If the primary provider key is missing, fall back to OpenRouter when set.
+    # An empty api_key lets ContextAwareAgent.resolve_llm_backend route via OpenRouter.
+    if not api_key:
+        if os.getenv("OPENROUTER_API_KEY"):
+            logger.info(
+                f"{args.provider} API key not set; falling back to OpenRouter "
+                "(OPENROUTER_API_KEY). Set the provider key to use it directly."
+            )
+            api_key = ""
+        else:
+            logger.error(
+                "No API key found. Set the provider key "
+                "(ARK_API_KEY/SILICONFLOW_API_KEY/MOONSHOT_API_KEY) or "
+                "OPENROUTER_API_KEY (universal fallback)."
+            )
+            sys.exit(1)
     
     # Log provider info
     logger.info(f"Using provider: {args.provider}, model: {args.model or 'default'}")

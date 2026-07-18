@@ -22,6 +22,50 @@ def _reasoning_safe_temperature(model, requested=1.0):
     return 1 if ("kimi-k3" in m or "gpt-5" in m) else requested
 
 
+def _map_model_to_openrouter(model):
+    """Map a bare model id to an OpenRouter model id.
+    - ids already containing '/' -> left as-is
+    - gpt-*/o1-*/o3-*/o4-* -> 'openai/<id>'
+    - claude-* -> anthropic Claude (opus/sonnet/haiku)
+    - other native ids (kimi-*, doubao-*, ...) are NOT reliably on OpenRouter,
+      so fall back to OPENROUTER_MODEL or a safe default that always works.
+    """
+    m = (model or "").strip()
+    if "/" in m:
+        return m
+    ml = m.lower()
+    if ml.startswith(("gpt-", "o1-", "o3-", "o4-")):
+        return "openai/" + m
+    if ml.startswith("claude-"):
+        if "sonnet" in ml:
+            return "anthropic/claude-sonnet-4.6"
+        if "haiku" in ml:
+            return "anthropic/claude-haiku-4.5"
+        return "anthropic/claude-opus-4.8"
+    return os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
+
+
+def resolve_llm_backend(primary_key, primary_base_url, model):
+    """Universal OpenRouter fallback for LLM backend resolution.
+
+    Returns (api_key, base_url, model, using_openrouter).
+    - If the primary provider key is present, behavior is unchanged.
+    - Else if OPENROUTER_API_KEY is present, route through OpenRouter and map
+      the model id to an OpenRouter id.
+    - Else raise a clear error listing the accepted keys.
+    """
+    if primary_key:
+        return primary_key, primary_base_url, model, False
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if openrouter_key:
+        base_url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+        return openrouter_key, base_url, _map_model_to_openrouter(model), True
+    raise ValueError(
+        "No API key found. Set MOONSHOT_API_KEY (primary) or "
+        "OPENROUTER_API_KEY (universal fallback)."
+    )
+
+
 @dataclass
 class GameExperience:
     """Represents a single game interaction experience."""
@@ -54,16 +98,17 @@ class LLMAgent:
             temperature: Sampling temperature for generation
             max_experiences: Maximum number of experiences to store
         """
-        # Set up API client
-        self.api_key = api_key or os.getenv("MOONSHOT_API_KEY")
-        if not self.api_key:
-            raise ValueError("Please provide Kimi API key or set MOONSHOT_API_KEY environment variable")
-        
+        # Set up API client (Moonshot primary, OpenRouter universal fallback)
+        primary_key = api_key or os.getenv("MOONSHOT_API_KEY")
+        self.api_key, resolved_base_url, self.model, self.using_openrouter = \
+            resolve_llm_backend(primary_key, base_url, model)
+        if self.using_openrouter:
+            print(f"ℹ️  MOONSHOT_API_KEY not set; routing via OpenRouter (model: {self.model})")
+
         self.client = openai.OpenAI(
             api_key=self.api_key,
-            base_url=base_url
+            base_url=resolved_base_url
         )
-        self.model = model
         self.temperature = temperature
         
         # Experience memory for in-context learning
