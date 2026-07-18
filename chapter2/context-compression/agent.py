@@ -75,11 +75,13 @@ class ResearchAgent:
             verbose: Enable verbose logging
             enable_streaming: Enable streaming responses
         """
+        # Moonshot 官方 key 存在则直连；否则回退 OpenRouter（见 Config.resolve_llm）。
+        resolved_key, resolved_base_url, resolved_model = Config.resolve_llm()
         self.client = OpenAI(
-            api_key=api_key,
-            base_url=Config.MOONSHOT_BASE_URL
+            api_key=resolved_key,
+            base_url=resolved_base_url
         )
-        self.model = Config.MODEL_NAME
+        self.model = resolved_model
         self.compression_strategy = compression_strategy
         self.verbose = verbose
         self.enable_streaming = enable_streaming

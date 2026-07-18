@@ -70,6 +70,9 @@ Required API keys:
   model whose real context window is ~1M tokens; the demo deliberately caps context at a 128K budget via
   `CONTEXT_WINDOW_SIZE` so the overflow/compression behavior is observable). The model name is configurable via
   `MODEL_NAME` in `.env` or the `-m/--model` CLI flag (e.g. `kimi-k2.5`, `kimi-k3`, `moonshot-v1-128k`).
+- `OPENROUTER_API_KEY`: 通用回退。未设置 `MOONSHOT_API_KEY` 时，只要配置了
+  `OPENROUTER_API_KEY`，实验会自动改走 OpenRouter（`kimi-*` 映射为
+  `moonshotai/kimi-k2`）。设置了 `MOONSHOT_API_KEY` 时行为完全不变。
 - `SERPER_API_KEY`: For web search (optional, will use mock data if not provided)
 
 Get API keys:
