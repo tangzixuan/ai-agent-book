@@ -15,29 +15,62 @@
 """
 
 import os
+from dataclasses import dataclass
 
 # 使用的模型（务必是 OpenAI 有效模型）
 MODEL = os.environ.get("COST_DEMO_MODEL", "gpt-4o-mini")
 
-# 每百万 token 的美元单价
+# 每百万 token 的美元单价（默认 gpt-4o-mini）
 PRICE_INPUT_PER_M = 0.15      # 普通输入
 PRICE_CACHED_PER_M = 0.075    # 命中缓存的输入（gpt-4o-mini 缓存读取为输入价的 50%）
 PRICE_OUTPUT_PER_M = 0.60     # 输出
 
 
-def cost_usd(prompt_tokens: int, cached_tokens: int, completion_tokens: int) -> float:
-    """按 token 用量换算成本（美元）。
+@dataclass(frozen=True)
+class Pricing:
+    """一组每百万 token 的美元单价。"""
+    input_per_m: float
+    cached_per_m: float
+    output_per_m: float
 
-    prompt_tokens   : usage.prompt_tokens，包含了缓存命中的部分
-    cached_tokens   : usage.prompt_tokens_details.cached_tokens，命中缓存的输入 token
-    completion_tokens: usage.completion_tokens
+    def cost_usd(self, prompt_tokens: int, cached_tokens: int,
+                 completion_tokens: int) -> float:
+        """按 token 用量换算成本（美元）。
 
-    未命中缓存的输入 = prompt_tokens - cached_tokens，按普通输入价计费；
-    命中缓存的输入按缓存价计费。
-    """
-    uncached_input = max(prompt_tokens - cached_tokens, 0)
-    return (
-        uncached_input / 1_000_000 * PRICE_INPUT_PER_M
-        + cached_tokens / 1_000_000 * PRICE_CACHED_PER_M
-        + completion_tokens / 1_000_000 * PRICE_OUTPUT_PER_M
+        prompt_tokens   : usage.prompt_tokens，包含了缓存命中的部分
+        cached_tokens   : usage.prompt_tokens_details.cached_tokens，命中缓存的输入 token
+        completion_tokens: usage.completion_tokens
+
+        未命中缓存的输入 = prompt_tokens - cached_tokens，按普通输入价计费；
+        命中缓存的输入按缓存价计费。
+        """
+        uncached_input = max(prompt_tokens - cached_tokens, 0)
+        return (
+            uncached_input / 1_000_000 * self.input_per_m
+            + cached_tokens / 1_000_000 * self.cached_per_m
+            + completion_tokens / 1_000_000 * self.output_per_m
+        )
+
+
+# 常见 OpenAI 模型的公开单价预设（每百万 token，美元），方便 CLI 用 --model 一键切换。
+# 换更强的模型不影响 KV-cache 机制（仍要求稳定前缀 >= 1024 token）。
+PRICING_PRESETS = {
+    "gpt-4o-mini": Pricing(0.15, 0.075, 0.60),
+    "gpt-4o":      Pricing(2.50, 1.25, 10.00),
+    "gpt-4.1-mini": Pricing(0.40, 0.10, 1.60),
+    "gpt-4.1":     Pricing(2.00, 0.50, 8.00),
+}
+
+
+def default_pricing() -> Pricing:
+    """返回默认模型（config 中 MODEL）的单价；未知模型回退到模块级 PRICE_* 默认值。"""
+    return PRICING_PRESETS.get(
+        MODEL, Pricing(PRICE_INPUT_PER_M, PRICE_CACHED_PER_M, PRICE_OUTPUT_PER_M)
     )
+
+
+def cost_usd(prompt_tokens: int, cached_tokens: int, completion_tokens: int,
+             pricing: "Pricing | None" = None) -> float:
+    """按 token 用量换算成本（美元）。默认用模块级单价，可传入自定义 Pricing。"""
+    p = pricing or Pricing(PRICE_INPUT_PER_M, PRICE_CACHED_PER_M, PRICE_OUTPUT_PER_M)
+    return p.cost_usd(prompt_tokens, cached_tokens, completion_tokens)

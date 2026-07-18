@@ -6,15 +6,23 @@
 工具返回内容是预设好的（真实 API 里会是订单系统/物流系统的返回），
 但每一次 LLM 调用、每一份 token 用量、每一分成本都是真实的。
 
-本文件提供两种上下文构造策略，用于 A/B：
-  (a) run_naive     —— 朴素做法：前缀不稳定 + 不压缩历史（KV-cache 命中不了，上下文疯长）
-  (b) run_optimized —— KV-cache 友好 + 上下文压缩：稳定长前缀（复用 cached_tokens）+ 旧轮次摘要
+本文件把「是否 KV-cache 友好」和「是否压缩上下文」两个开关正交拆开，
+可组合出完整的 2×2 A/B（对应书中「对比启用/禁用 KV Cache、启用/禁用上下文压缩」）：
+  run_scenario(kv_cache=False, compress=False) —— A 朴素（前缀不稳定 + 不压缩）
+  run_scenario(kv_cache=True,  compress=False) —— 仅 KV-cache（稳定长前缀，历史不压缩）
+  run_scenario(kv_cache=False, compress=True)  —— 仅压缩（前缀不稳定，旧轮次摘要）
+  run_scenario(kv_cache=True,  compress=True)  —— B 优化（稳定前缀 + 压缩，两个杠杆叠加）
+兼容旧接口：run_naive == (False, False)，run_optimized == (True, True)。
 """
 
 import uuid
+from functools import lru_cache
 
-from config import MODEL
+from config import MODEL, Pricing
 from tracer import Tracer
+
+# 最近保留几轮完整工具返回（更早的压成一句话摘要）。压缩关闭时视为无穷大。
+KEEP_VERBOSE = 2
 
 # 限制每轮输出长度：本实验聚焦「输入侧」的 KV-cache 与压缩两个杠杆，
 # 把输出 token 控制在相近水平，可避免模型生成长度的随机波动干扰 A/B 成本对比。
@@ -162,75 +170,91 @@ def _next_user_msg(tool_name: str, tool_result: str) -> str:
     )
 
 
-def run_naive(client) -> Tracer:
-    """(a) 朴素做法。
+@lru_cache(maxsize=1)
+def _encoder():
+    """按当前模型取 tiktoken 编码器（离线可用），用于估算「工具返回注入」的 token。"""
+    import tiktoken
+    try:
+        return tiktoken.encoding_for_model(MODEL)
+    except Exception:
+        return tiktoken.get_encoding("cl100k_base")
 
-    两个「反模式」：
-    1. 前缀不稳定：每次调用在 system 最前面塞一个随机 session 头（uuid/时间戳），
-       破坏前缀一致性 → OpenAI prompt cache 完全命中不了（cached_tokens=0）。
-    2. 不压缩：每轮都把全部历史工具返回原样带上，上下文线性膨胀。
+
+def _ntok(text: str) -> int:
+    return len(_encoder().encode(text))
+
+
+# ---------------------------------------------------------------------------
+# 四种 A/B 场景的登记表：名字 + 两个开关。
+# ---------------------------------------------------------------------------
+SCENARIOS = {
+    "naive":    ("A 朴素(无缓存/无压缩)", False, False),
+    "kv":       ("KV 仅缓存(稳定前缀/不压缩)", True, False),
+    "compress": ("仅压缩(前缀不稳定/摘要)", False, True),
+    "both":     ("B 优化(KV缓存+压缩)", True, True),
+}
+
+
+def build_messages(idx, step, tool, result, turns, kv_cache, compress):
+    """构造第 idx 轮要发给模型的 messages，并返回本轮输入里「工具返回注入」的累计 token。
+
+    kv_cache=True  → system 用逐字节稳定的长前缀（可被 OpenAI 自动缓存）；
+    kv_cache=False → 每轮在 system 最前面塞随机 session 头，破坏前缀一致性。
+    compress=True  → 仅最近 KEEP_VERBOSE 轮保留完整工具返回，更早轮次压成一句话摘要。
     """
-    tracer = Tracer(client, name="A-朴素(无缓存/无压缩)")
-    # 历史消息（会随轮次不断增长）
-    history = [{"role": "user", "content": USER_REQUEST}]
-
-    for step, tool, result in TOOL_RESULTS:
-        # 反模式1：每轮生成新的易变前缀，放在 system 最前面，破坏 KV-cache
+    if kv_cache:
+        system = {"role": "system", "content": STABLE_SYSTEM_PROMPT}
+    else:
         volatile_head = f"[会话追踪] session={uuid.uuid4()} 请求序号={uuid.uuid4()}\n\n"
         system = {"role": "system", "content": volatile_head + STABLE_SYSTEM_PROMPT}
 
-        messages = [system] + history
-        resp = tracer.chat(step=step, tool=tool, model=MODEL,
-                           messages=messages, temperature=0,
-                           max_tokens=MAX_OUTPUT_TOKENS)
-        assistant_text = resp.choices[0].message.content or ""
+    history = [{"role": "user", "content": USER_REQUEST}]
+    tool_ctx_tokens = 0
+    for j, (p_step, p_assistant, p_tool, p_result) in enumerate(turns):
+        history.append({"role": "assistant", "content": p_assistant})
+        if compress and idx - j > KEEP_VERBOSE:
+            compact = TOOL_SUMMARIES.get(p_step, f"[摘要] {p_tool} 已完成。")
+            history.append({"role": "user", "content": compact})
+            tool_ctx_tokens += _ntok(compact)
+        else:
+            history.append({"role": "user", "content": _next_user_msg(p_tool, p_result)})
+            tool_ctx_tokens += _ntok(p_result)
 
-        # 反模式2：历史里保留完整（啰嗦的）工具返回，不做压缩
-        history.append({"role": "assistant", "content": assistant_text})
-        history.append({"role": "user", "content": _next_user_msg(tool, result)})
+    messages = [system] + history + [
+        {"role": "user", "content": _next_user_msg(tool, result)}
+    ]
+    tool_ctx_tokens += _ntok(result)   # 本轮新注入的工具返回
+    return messages, tool_ctx_tokens
 
-    return tracer
 
+def run_scenario(client, kv_cache: bool, compress: bool, name: str = None,
+                 pricing: Pricing = None) -> Tracer:
+    """跑一遍 8 轮客服退款任务，两个开关正交组合出 2×2 中的一格。
 
-def run_optimized(client) -> Tracer:
-    """(b) KV-cache 友好 + 上下文压缩。
-
-    两个优化：
-    1. 稳定长前缀：system 永远是同一份 STABLE_SYSTEM_PROMPT（> 1024 token），
-       且始终放在消息列表最前面、逐字节不变 → OpenAI 自动缓存该前缀，
-       后续轮次 cached_tokens 会显著 > 0，这部分按缓存价（5 折）计费。
-    2. 上下文压缩：只保留最近 2 轮的完整工具返回，更早轮次替换为一句话摘要，
-       控制上下文增长速率（对应书里「压缩历史轨迹」）。
+    两组做的是同样的逻辑工作，只在上下文构造上不同，因此成本差异纯粹来自
+    KV-cache 复用与上下文压缩这两个输入侧杠杆。
     """
-    tracer = Tracer(client, name="B-优化(KV缓存+压缩)")
-    # 稳定 system，全程复用同一个对象内容
-    system = {"role": "system", "content": STABLE_SYSTEM_PROMPT}
-
-    # 分别记录：每一轮的 (step, assistant_text, tool_name, full_result)
+    tracer = Tracer(client, name=name or f"kv={kv_cache},compress={compress}",
+                    pricing=pricing)
     turns = []
-
-    KEEP_VERBOSE = 2  # 最近 2 轮保留完整工具返回，更早的压成摘要
-
     for idx, (step, tool, result) in enumerate(TOOL_RESULTS):
-        # 基于已完成的历史轮次，构造压缩后的历史消息
-        history = [{"role": "user", "content": USER_REQUEST}]
-        for j, (p_step, p_assistant, p_tool, p_result) in enumerate(turns):
-            history.append({"role": "assistant", "content": p_assistant})
-            # 距当前较远的轮次 → 用摘要替换啰嗦的工具返回（上下文压缩）
-            if idx - j > KEEP_VERBOSE:
-                compact = TOOL_SUMMARIES.get(p_step, f"[摘要] {p_tool} 已完成。")
-                history.append({"role": "user", "content": compact})
-            else:
-                history.append({"role": "user",
-                                "content": _next_user_msg(p_tool, p_result)})
-
-        messages = [system] + history + [
-            {"role": "user", "content": _next_user_msg(tool, result)}
-        ]
-        resp = tracer.chat(step=step, tool=tool, model=MODEL,
-                           messages=messages, temperature=0,
+        messages, tool_ctx = build_messages(
+            idx, step, tool, result, turns, kv_cache, compress)
+        resp = tracer.chat(step=step, tool=tool, tool_ctx_tokens=tool_ctx,
+                           model=MODEL, messages=messages, temperature=0,
                            max_tokens=MAX_OUTPUT_TOKENS)
         assistant_text = resp.choices[0].message.content or ""
         turns.append((step, assistant_text, tool, result))
-
     return tracer
+
+
+def run_naive(client, pricing: Pricing = None) -> Tracer:
+    """(a) 朴素做法：前缀不稳定 + 不压缩历史（KV-cache 命中不了、上下文疯长）。"""
+    return run_scenario(client, kv_cache=False, compress=False,
+                        name=SCENARIOS["naive"][0], pricing=pricing)
+
+
+def run_optimized(client, pricing: Pricing = None) -> Tracer:
+    """(b) KV-cache 友好 + 上下文压缩：稳定长前缀命中缓存 + 旧轮次摘要。"""
+    return run_scenario(client, kv_cache=True, compress=True,
+                        name=SCENARIOS["both"][0], pricing=pricing)

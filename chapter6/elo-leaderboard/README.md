@@ -51,6 +51,56 @@ cd projects/week6/elo-leaderboard
 pip install -r requirements.txt
 ```
 
+## 命令行工具 / Command-Line Interface (`cli.py`)
+
+`cli.py` 是本实验统一的 argparse 命令行入口（中文 `--help`），把整条流水线拆成子命令：
+**对战 (battle) -> 计算评分 (elo) -> 展示排行榜 (leaderboard)**，并提供 `pipeline` 一步到位。
+
+```bash
+python cli.py --help              # 查看全部子命令
+python cli.py battle --help       # 查看某个子命令的参数
+
+# 默认离线端到端演示：模拟对战 -> 在线 Elo -> 最终排行榜表格（无需任何数据/API）
+python cli.py                     # 等价于 python cli.py pipeline
+```
+
+### 子命令
+
+| 子命令 | 作用 | 关键参数 |
+|--------|------|----------|
+| `battle` | 生成两两对战结果 | `--source {simulate,arena,llm}`、`--num-battles`、`--tie-prob`、`--seed`、`--sample`、`--output` |
+| `elo` | 从对战结果计算评分 | `--method {online-elo,bradley-terry}`、`--k`、`--bootstrap`、`--input`、`--output` |
+| `leaderboard` | 渲染最终排行榜表格 | `--input`（对战或评分文件）、`--method`、`--bootstrap`、`--top-n` |
+| `pipeline` | 一步跑完 对战 -> Elo -> 排行榜 | 上述参数的并集 |
+
+### 三种对战来源（`--source`）
+
+- **`simulate`（默认，纯离线）**：从已知的潜在实力分模拟对战。因为真值已知，可用来**校验**恢复出的排行榜排序是否正确；`--tie-prob` 控制平局比例，用于演练平局处理。
+- **`arena`（离线）**：加载真实 Chatbot Arena 投票数据（默认 `arena_data.json`，约 2GB），可用 `--sample N` 抽样。
+- **`llm`（需 API）**：用 LLM 做配对评判，并内置**位置偏差消除**——每对交换顺序各评一次，两次判决一致才计胜负、否则记为平局（对应书中 6.4 位置偏差讨论）。仅此来源需要 `ANTHROPIC_API_KEY`。
+
+### 分步示例
+
+```bash
+# 1) 模拟 5000 场对战（含 10% 平局）
+python cli.py battle --source simulate --num-battles 5000 --output battles.json
+
+# 2) 用官方 Bradley-Terry MLE + 100 轮 bootstrap 置信区间计算评分
+python cli.py elo --input battles.json --method bradley-terry --bootstrap 100
+
+# 3) 展示前 20 名排行榜（也可直接读评分文件）
+python cli.py leaderboard --input battles.json --top-n 20
+
+# 用真实 Arena 数据抽样跑（离线）
+python cli.py pipeline --source arena --arena-file arena_data.json --sample 50000 --method bradley-terry --bootstrap 100
+
+# LLM 评判对战（需要 API Key）
+export ANTHROPIC_API_KEY=sk-...
+python cli.py battle --source llm --candidate-models claude-opus-4-8 claude-haiku-4-5
+```
+
+模拟来源会同时打印真值潜在实力，方便和恢复出的排行榜对照；在线 Elo 与 Bradley-Terry 两种方法都应恢复出与真值一致的排名（分值不必精确对齐，见下文说明）。
+
 ## Quick Start
 
 The project implements **two ranking methods** following official Chatbot Arena:
@@ -139,6 +189,9 @@ This shows performance and accuracy differences between online Elo and Bradley-T
 
 ```
 elo-leaderboard/
+├── cli.py                      # Unified argparse CLI (battle / elo / leaderboard / pipeline)
+├── battle_simulator.py         # Offline synthetic pairwise-battle generator
+├── llm_judge.py                # LLM-as-judge battles with position-bias mitigation (needs API)
 ├── main.py                     # Main analysis script
 ├── optimized_elo.py            # NumPy + Numba Elo rating system
 ├── parallel_processing.py      # Multi-core parallel processing utilities

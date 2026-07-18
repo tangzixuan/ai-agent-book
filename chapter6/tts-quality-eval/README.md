@@ -2,9 +2,10 @@
 
 配套《深入理解 AI Agent》第 6 章「实验 6-5 ★★：构建全自动 TTS 质量评估流水线」。
 
-用多种 **TTS 配置**（不同 model / voice / speed）合成同一组带挑战性的参考文本，再用
+用多个 **TTS provider / 配置**（OpenAI、ElevenLabs、Fish Audio、Minimax、豆包，或同
+一家的不同 model / voice / speed）合成同一组带挑战性的参考文本，再用
 **多模态 LLM-as-a-Judge** 的思路对合成语音按 **Rubric** 逐维度打分，最后汇总成一张
-**配置对比表**，反映不同配置在准确性 / 自然度上的优劣。
+**对比表**，反映不同 provider / 配置在准确性 / 自然度上的优劣。
 
 ## 目的
 
@@ -28,8 +29,23 @@
 
 ## Provider 适配说明
 
-- **TTS 合成**：OpenAI `tts-1` / `tts-1-hd`（可选 `gpt-4o-mini-tts`）。不同 model /
-  voice / speed 组合即一个「配置」。读 `OPENAI_API_KEY`。
+- **TTS 合成（多 provider）**：对应书中「接入主流服务：OpenAI、ElevenLabs、Fish Audio、
+  Minimax、豆包」。每个 provider 按各家公开 REST 接口实现（OpenAI 走官方 SDK，其余走内置
+  `urllib`，无额外依赖）。默认（不加 `--providers`）只跑 OpenAI 的 4 个配置，保证单个
+  `OPENAI_API_KEY` 即可零配置跑通；`--providers openai,minimax,...` 做跨服务商横向对比。
+  各 provider 所需环境变量与 voice 字段语义见 `python demo.py --list-providers`。
+
+  | provider | 环境变量 | voice 语义 |
+  |----------|----------|-----------|
+  | `openai` | `OPENAI_API_KEY` | alloy/nova…；model=tts-1 / tts-1-hd / gpt-4o-mini-tts |
+  | `elevenlabs` | `ELEVENLABS_API_KEY` | voice_id；model 默认 eleven_multilingual_v2 |
+  | `fishaudio` | `FISHAUDIO_API_KEY` | reference_id（留空用默认音色） |
+  | `minimax` | `MINIMAX_API_KEY` + `MINIMAX_GROUP_ID` | voice_id；model 默认 speech-01-turbo |
+  | `doubao` | `DOUBAO_APP_ID` + `DOUBAO_ACCESS_TOKEN` | voice_type（火山引擎） |
+
+  > 说明：本仓库仅 **OpenAI** 路径经端到端验证；其余四家按各自公开 REST 文档实现，请用自己
+  > 账号可用的 voice/model 覆盖 `config.PROVIDER_CONFIGS` 后使用。缺对应 key 时该 provider
+  > 的行会被记为失败，**不中断整表**。
 - **质量评审（默认）**：**OpenAI 闭环，无需额外 key**。用 Whisper（`whisper-1`）把合成
   语音回译成文本算 CER，再用 `gpt-4o-mini` 基于「转写文本 + 时长 + 语速 + CER」按 Rubric
   打分。转写时用简体中文提示语引导 Whisper 输出简体，避免繁体字形差异虚高 CER。
@@ -45,8 +61,8 @@
 
 | 文件 | 说明 |
 |------|------|
-| `config.py` | 模型名与单价、TTS 配置集合、带挑战性的测试语料 |
-| `pipeline.py` | 合成 / ffprobe 时长 / Whisper 回译 / CER 计算 / LLM Rubric / 可选 Gemini |
+| `config.py` | 模型名与单价、provider 注册表（`PROVIDERS` / `PROVIDER_CONFIGS`）、TTS 配置集合、测试语料 |
+| `pipeline.py` | 多 provider 合成分发 / ffprobe 时长 / Whisper 回译 / CER 计算 / LLM Rubric / 可选 Gemini |
 | `demo.py` | 入口：多配置 × 多语料跑全流程，打印逐条明细 + 对比汇总表 |
 | `requirements.txt` / `env.example` | 依赖与环境变量示例 |
 
@@ -57,14 +73,25 @@ pip install -r requirements.txt          # 只需 openai
 brew install ffmpeg                        # 提供 ffprobe（时长探测）
 export OPENAI_API_KEY=sk-...
 
-python demo.py            # 默认：4 个配置 × 4 条语料，Whisper 回译 + LLM Rubric
+python demo.py            # 默认：4 个 OpenAI 配置 × 4 条语料，Whisper 回译 + LLM Rubric
 python demo.py --quick   # 只用前 2 条语料，快速冒烟
 python demo.py --extra   # 额外加入 gpt-4o-mini-tts 配置
 python demo.py --gemini  # 评审改用 Gemini 多模态直接听音频（需 GEMINI_API_KEY）
 python demo.py --fresh   # 忽略已有音频全部重合成
+
+# 多 provider / 自定义输入（新增）
+python demo.py --providers openai,minimax,elevenlabs   # 跨服务商横向对比（需各自 key）
+python demo.py --text '2026年营收增长37.5%'             # 用一段自定义文本替换语料库
+python demo.py --judge-model gpt-4o                     # 覆盖 LLM 评审模型
+python demo.py --output ./runs/exp1                     # 自定义输出目录
+
+# 离线（无需任何 API key）
+python demo.py --list-providers   # 查看所有 provider 及配置状态
+python demo.py --dump-rubric      # 查看 Rubric 维度定义
 ```
 
-合成音频写入 `output/`（已被 `.gitignore` 忽略），结构化结果写入 `output/results.json`。
+完整参数见 `python demo.py --help`（全中文）。合成音频写入 `output/`（已被 `.gitignore`
+忽略），结构化结果写入 `output/results.json`（可用 `--output` 改目录）。
 **幂等**：默认复用已存在的音频，重复运行不会重复合成。
 
 ## 测试语料

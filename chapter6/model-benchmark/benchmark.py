@@ -4,9 +4,13 @@
 对多个 OpenAI 兼容的 LLM API 提供商，测量以下核心指标：
     - TTFT（Time To First Token，首个 token 到达延迟）
     - 端到端延迟（发出请求到接收完整响应）
-    - 吞吐（tokens/s，按生成的输出 token 计）
-    - p50 / p95 延迟分位数（方差大意味着体验不稳定）
+    - 吞吐（tokens/s，按生成的输出 token 计；并发下另给聚合吞吐 / RPS）
+    - 标准差 / p50 / p95 / p99 延迟分位数（方差大意味着体验不稳定）
     - 可用性 / 成功率（失败即计入可用性下降，不中断整表）
+
+支持两种模式：
+    - 单档位对比：多提供商横向对比表（默认）。
+    - 并发扫描（压测）：对同一模型逐步提升并发，观察延迟长尾与聚合吞吐随并发的变化。
 
 实现要点：
     - 使用 openai SDK 的流式接口（stream=True）来精确测量 TTFT。
@@ -19,6 +23,7 @@ from __future__ import annotations
 
 import os
 import time
+import random
 import statistics
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -171,10 +176,30 @@ class ProviderSummary:
     success: int
     results: list[RequestResult] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    concurrency: int = 1        # 本次批次使用的并发数（并发扫描时用于标注行）
+    wall_time: float = 0.0      # 整批请求的墙钟耗时（秒），用于算聚合吞吐/RPS
 
     @property
     def availability(self) -> float:
         return self.success / self.total if self.total else 0.0
+
+    @property
+    def rps(self) -> Optional[float]:
+        """吞吐（请求/秒）：成功请求数 / 整批墙钟耗时。并发越高一般越大，直到触顶。"""
+        if self.wall_time <= 0:
+            return None
+        return self.success / self.wall_time
+
+    @property
+    def agg_throughput(self) -> Optional[float]:
+        """聚合输出吞吐（tokens/s）：全部成功请求的输出 token 总数 / 整批墙钟耗时。"""
+        if self.wall_time <= 0:
+            return None
+        total_tokens = sum(
+            r.completion_tokens for r in self.results
+            if r.ok and r.completion_tokens
+        )
+        return total_tokens / self.wall_time if total_tokens else 0.0
 
     def _vals(self, attr: str) -> list[float]:
         return [getattr(r, attr) for r in self.results if r.ok and getattr(r, attr) is not None]
@@ -199,10 +224,15 @@ class ProviderSummary:
             return None
         if kind == "mean":
             return statistics.mean(vals)
+        if kind == "std":
+            # 标准差：样本 <2 时无从谈起，返回 0 而非报错
+            return statistics.stdev(vals) if len(vals) >= 2 else 0.0
         if kind == "p50":
             return self._pct(vals, 0.50)
         if kind == "p95":
             return self._pct(vals, 0.95)
+        if kind == "p99":
+            return self._pct(vals, 0.99)
         raise ValueError(kind)
 
 
@@ -227,6 +257,7 @@ def benchmark_provider(
     )
     results: list[RequestResult] = []
 
+    batch_start = time.perf_counter()
     if concurrency <= 1:
         for _ in range(num_requests):
             results.append(measure_once(client, cfg.model, prompt, max_tokens, timeout))
@@ -238,6 +269,7 @@ def benchmark_provider(
             ]
             for fut in as_completed(futures):
                 results.append(fut.result())
+    wall_time = time.perf_counter() - batch_start
 
     success = sum(1 for r in results if r.ok)
     errors = [r.error for r in results if not r.ok and r.error]
@@ -248,6 +280,8 @@ def benchmark_provider(
         success=success,
         results=results,
         errors=errors,
+        concurrency=concurrency,
+        wall_time=wall_time,
     )
 
 
@@ -270,3 +304,95 @@ def run_benchmark(
         print(f"    完成：成功 {summary.success}/{summary.total}", flush=True)
         summaries.append(summary)
     return summaries
+
+
+def sweep_concurrency(
+    cfg: ProviderConfig,
+    prompt: str,
+    num_requests: int,
+    concurrency_levels: list[int],
+    max_tokens: int,
+    timeout: float,
+) -> list[ProviderSummary]:
+    """
+    压测：对同一 (provider, model) 逐步提升并发，返回每个并发档位的汇总。
+
+    对应书中"通过逐步提升并发量来找到限流点，记录 RPM/TPM 上限"——
+    随着并发上升，单请求延迟（p95）会变差、可用性可能因限流而下降，
+    而聚合吞吐（RPS / tokens·s⁻¹）会先升后平（触及服务端上限即触顶）。
+    """
+    summaries: list[ProviderSummary] = []
+    for c in concurrency_levels:
+        print(f"  → {cfg.name} @ 并发={c} (N={num_requests}) ...", flush=True)
+        summary = benchmark_provider(cfg, prompt, num_requests, c, max_tokens, timeout)
+        print(f"    完成：成功 {summary.success}/{summary.total}, "
+              f"墙钟 {summary.wall_time:.2f}s", flush=True)
+        summaries.append(summary)
+    return summaries
+
+
+# ---------------------------------------------------------------------------
+# 合成（synthetic）数据：仅供离线演示指标聚合，绝非真实基准
+# ---------------------------------------------------------------------------
+def synthetic_summary(
+    provider: str,
+    model: str,
+    num_requests: int,
+    concurrency: int,
+    *,
+    base_ttft: float = 0.30,
+    base_gen_throughput: float = 90.0,
+    fail_rate: float = 0.0,
+    seed: int = 0,
+) -> ProviderSummary:
+    """
+    用伪随机数生成一批"看起来像真实测量"的 RequestResult，用于：
+      1) 在没有 API key / 没有网络时验证指标聚合数学（p50/p95/p99/std/可用性）；
+      2) 演示并发上升时延迟长尾变差、可用性可能下降的趋势。
+
+    ⚠️ 生成的所有数字都是合成的，不代表任何真实模型/提供商的性能。
+    并发越高，用一个简单的排队模型抬高 TTFT 与端到端延迟，仅为呈现趋势。
+    """
+    rng = random.Random(seed + concurrency * 1000)
+    # 并发放大系数：并发越高，排队等待越久（简单线性 + 抖动模型）
+    contention = 1.0 + 0.12 * max(concurrency - 1, 0)
+
+    results: list[RequestResult] = []
+    total_tokens = 0
+    sum_latency = 0.0
+    for _ in range(num_requests):
+        # 高并发下失败率随之升高（模拟限流），封顶 60%
+        eff_fail = min(fail_rate * contention, 0.60)
+        if rng.random() < eff_fail:
+            results.append(RequestResult(ok=False, error="synthetic: rate_limited (429)"))
+            continue
+        # TTFT：对数正态形状，右偏（长尾），再乘并发放大
+        ttft = base_ttft * contention * rng.lognormvariate(0.0, 0.35)
+        gen_tp = max(base_gen_throughput * rng.uniform(0.75, 1.15), 1.0)
+        tokens = rng.randint(28, 48)
+        gen_time = tokens / gen_tp
+        latency = ttft + gen_time
+        total_tokens += tokens
+        sum_latency += latency
+        results.append(RequestResult(
+            ok=True,
+            ttft=ttft,
+            latency=latency,
+            completion_tokens=tokens,
+            throughput=gen_tp,
+        ))
+
+    success = sum(1 for r in results if r.ok)
+    # 合成墙钟：把成功请求的总延迟按并发均摊，得到一个自洽的批次耗时
+    wall_time = max(sum_latency / max(concurrency, 1), 1e-6)
+    errors = [r.error for r in results if not r.ok and r.error]
+    return ProviderSummary(
+        provider=provider,
+        model=model,
+        total=num_requests,
+        success=success,
+        results=results,
+        errors=errors,
+        concurrency=concurrency,
+        wall_time=wall_time,
+    )

@@ -1,13 +1,16 @@
 """实验 6-5：全自动 TTS 质量评估流水线 —— 一条命令跑通。
 
-    python demo.py                # 默认 4 个配置 x 4 条语料，Whisper 回译 + LLM Rubric
-    python demo.py --extra        # 额外加入 gpt-4o-mini-tts 配置
-    python demo.py --gemini       # 评审改用 Gemini 多模态直接听音频（需 GEMINI_API_KEY）
-    python demo.py --quick        # 只用前 2 条语料，快速冒烟
+    python demo.py                      # 默认 4 个 OpenAI 配置 x 4 条语料
+    python demo.py --providers openai,minimax   # 跨服务商横向对比
+    python demo.py --text '一段话'       # 自定义文本
+    python demo.py --gemini             # 评审改用 Gemini 多模态直接听音频（需 GEMINI_API_KEY）
+    python demo.py --quick              # 只用前 2 条语料，快速冒烟
+    python demo.py --list-providers     # 离线：查看 provider 及配置状态
+    python demo.py --dump-rubric        # 离线：查看 Rubric 维度定义
 
-流程：多配置 TTS 合成 -> ffprobe 时长 -> Whisper 回译 -> CER/字准确率
-      -> LLM Rubric 打分 -> 打印逐条明细 + 配置对比汇总表。
-幂等：音频写入 output/ 并复用（除非 --fresh）。
+流程：多 provider TTS 合成 -> ffprobe 时长 -> Whisper 回译 -> CER/字准确率
+      -> LLM/Gemini Rubric 打分 -> 打印逐条明细 + 配置对比汇总表。
+幂等：音频写入 output/ 并复用（除非 --fresh）。完整参数见 `python demo.py --help`。
 """
 
 import argparse
@@ -39,10 +42,11 @@ def audio_path(cfg_name: str, sample_id: str) -> str:
     return os.path.join(OUT_DIR, f"{cfg_name}__{sample_id}.mp3")
 
 
-def evaluate_one(cfg, sample, use_gemini: bool, fresh: bool) -> dict:
+def evaluate_one(cfg, sample, use_gemini: bool, fresh: bool,
+                 judge_model: str = None) -> dict:
     """对单个 (配置, 语料) 跑完整链路。任一步失败返回 error 记录，不抛出。"""
     rec = {"config": cfg.name, "sample": sample.id, "challenge": sample.challenge,
-           "ok": False, "error": None}
+           "provider": getattr(cfg, "provider", "openai"), "ok": False, "error": None}
     path = audio_path(cfg.name, sample.id)
     try:
         # 1) 合成（幂等：已存在且非 fresh 则复用）
@@ -58,7 +62,8 @@ def evaluate_one(cfg, sample, use_gemini: bool, fresh: bool) -> dict:
         if use_gemini:
             rub = pipeline.judge_gemini_audio(sample.text, sample.emotion, path)
         else:
-            rub = pipeline.judge_rubric(sample.text, sample.emotion, hyp, dur, er.cer)
+            rub = pipeline.judge_rubric(sample.text, sample.emotion, hyp, dur, er.cer,
+                                        model=judge_model)
         rec.update({
             "ok": True, "duration": dur, "hypothesis": hyp,
             "cer": er.cer, "accuracy": er.accuracy,
@@ -126,30 +131,105 @@ def print_table(rows):
         print(line)
 
 
+def print_providers():
+    """离线打印所有可用 TTS provider 及其配置状态（无需任何 API key）。"""
+    print("可用 TTS provider（书中：OpenAI / ElevenLabs / Fish Audio / Minimax / 豆包）：\n")
+    for key, p in config.PROVIDERS.items():
+        state = "已配置" if p.configured() else "未配置"
+        env = " + ".join(p.env)
+        print(f"  [{key}]  {p.label}   ({state}；需 {env})")
+        print(f"      {p.note}")
+    print("\n用 --providers openai,minimax 选择跨服务商横向对比（默认仅 OpenAI）。")
+    print("非 OpenAI provider 需各自的 key（见 env.example）；缺 key 时该行记为失败，不中断整表。")
+
+
+def print_rubric():
+    """离线打印 Rubric 维度定义（无需任何 API key）。"""
+    print("TTS 质量评估 Rubric（1-5 分，5 最好）：\n")
+    for dim in pipeline.RUBRIC_DIMENSIONS:
+        print(f"  {dim}：{pipeline.RUBRIC_DESCRIPTIONS.get(dim, '')}")
+    print("\n默认（Whisper 回译 + LLM）评审基于「转写文本 + 时长 + 语速 + CER」保守打分；")
+    print("--gemini 让多模态模型直接听音频，可覆盖书中「情感表达 / 音色一致性」维度。")
+
+
 def main():
-    ap = argparse.ArgumentParser(description="全自动 TTS 质量评估流水线（实验 6-5）")
+    global OUT_DIR
+    ap = argparse.ArgumentParser(
+        description="全自动 TTS 质量评估流水线（实验 6-5）：多 provider 合成 + 多模态 LLM Rubric 评审",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="示例：\n"
+               "  python demo.py                          默认 4 个 OpenAI 配置 × 4 条语料\n"
+               "  python demo.py --providers openai,minimax   跨服务商横向对比\n"
+               "  python demo.py --text '今天天气不错' --gemini   自定义文本 + Gemini 多模态评审\n"
+               "  python demo.py --list-providers         离线查看 provider 及配置状态\n"
+               "  python demo.py --dump-rubric            离线查看 Rubric 维度定义",
+    )
+    ap.add_argument("--text", metavar="文本",
+                    help="用一段自定义文本替换测试语料库（只评这一句）")
+    ap.add_argument("--providers", metavar="列表",
+                    help="逗号分隔的 provider（openai,elevenlabs,fishaudio,minimax,doubao），"
+                         "每个取代表性配置做横向对比；默认仅 OpenAI 的多配置")
+    ap.add_argument("--judge-model", metavar="模型", dest="judge_model",
+                    help=f"覆盖 LLM 评审模型（默认 {config.JUDGE_MODEL}）；--gemini 时不生效")
+    ap.add_argument("--output", metavar="目录",
+                    help=f"输出目录（音频 + results.json），默认 {OUT_DIR}")
     ap.add_argument("--extra", action="store_true", help="额外加入 gpt-4o-mini-tts 配置")
-    ap.add_argument("--gemini", action="store_true", help="用 Gemini 多模态直接听音频评审")
+    ap.add_argument("--gemini", action="store_true", help="用 Gemini 多模态直接听音频评审（需 GEMINI_API_KEY）")
     ap.add_argument("--quick", action="store_true", help="只用前 2 条语料快速冒烟")
     ap.add_argument("--fresh", action="store_true", help="忽略已有音频，全部重新合成")
+    ap.add_argument("--list-providers", action="store_true", dest="list_providers",
+                    help="离线打印所有 TTS provider 及配置状态后退出（无需 key）")
+    ap.add_argument("--dump-rubric", action="store_true", dest="dump_rubric",
+                    help="离线打印 Rubric 维度定义后退出（无需 key）")
     args = ap.parse_args()
 
     load_env()
+
+    # 离线路径：不联网、不需要任何 key，打印后直接退出。
+    if args.list_providers:
+        print_providers()
+        return
+    if args.dump_rubric:
+        print_rubric()
+        return
+
+    if args.output:
+        OUT_DIR = os.path.abspath(args.output)
     os.makedirs(OUT_DIR, exist_ok=True)
 
     if not os.environ.get("OPENAI_API_KEY", "").strip():
-        print("错误：缺少 OPENAI_API_KEY。请 export 或写入 .env 后重试。", file=sys.stderr)
+        print("错误：缺少 OPENAI_API_KEY（回译/默认评审需要）。请 export 或写入 .env 后重试。",
+              file=sys.stderr)
         sys.exit(1)
 
-    configs = list(config.TTS_CONFIGS)
-    if args.extra:
-        configs += config.EXTRA_CONFIGS
-    corpus = config.CORPUS[:2] if args.quick else config.CORPUS
+    # 选择待对比的配置：--providers 优先（跨服务商），否则默认 OpenAI 多配置。
+    if args.providers:
+        configs = []
+        for key in [p.strip() for p in args.providers.split(",") if p.strip()]:
+            if key not in config.PROVIDER_CONFIGS:
+                print(f"错误：未知 provider {key!r}。可用：{', '.join(config.PROVIDER_CONFIGS)}",
+                      file=sys.stderr)
+                sys.exit(1)
+            configs.append(config.PROVIDER_CONFIGS[key])
+    else:
+        configs = list(config.TTS_CONFIGS)
+        if args.extra:
+            configs += config.EXTRA_CONFIGS
 
-    mode = "Gemini 多模态音频评审" if args.gemini else "Whisper 回译 + LLM Rubric"
+    if args.text:
+        corpus = [config.Sample(id="custom", text=args.text,
+                                challenge="自定义文本", emotion="中性")]
+    else:
+        corpus = config.CORPUS[:2] if args.quick else config.CORPUS
+
+    judge_model = args.judge_model or config.JUDGE_MODEL
+    mode = ("Gemini 多模态音频评审" if args.gemini
+            else f"Whisper 回译 + LLM Rubric（{judge_model}）")
+    providers_used = sorted({getattr(c, "provider", "openai") for c in configs})
     print("=" * 72)
     print(f"实验 6-5：全自动 TTS 质量评估流水线")
     print(f"评审模式：{mode}")
+    print(f"参与 provider：{', '.join(providers_used)}")
     print(f"配置数：{len(configs)}   语料数：{len(corpus)}   "
           f"共 {len(configs)*len(corpus)} 条待评估")
     print("=" * 72)
@@ -157,10 +237,11 @@ def main():
     records = []
     t0 = time.time()
     for cfg in configs:
-        print(f"\n### 配置 {cfg.name}  (model={cfg.model}, voice={cfg.voice}, "
-              f"speed={cfg.speed})")
+        print(f"\n### 配置 {cfg.name}  (provider={getattr(cfg,'provider','openai')}, "
+              f"model={cfg.model}, voice={cfg.voice}, speed={cfg.speed})")
         for sample in corpus:
-            rec = evaluate_one(cfg, sample, args.gemini, args.fresh)
+            rec = evaluate_one(cfg, sample, args.gemini, args.fresh,
+                               judge_model=None if args.gemini else args.judge_model)
             print_detail(rec, sample.text)
             records.append(rec)
 

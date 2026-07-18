@@ -29,20 +29,84 @@ PRICE = {
 
 @dataclass
 class TTSConfig:
-    """一个待评估的 TTS 配置。name 需在整表内唯一。"""
+    """一个待评估的 TTS 配置。name 需在整表内唯一。
+
+    provider 指明合成走哪个服务商（openai / elevenlabs / fishaudio / minimax /
+    doubao）。model / voice / speed 的语义由各 provider 自行解释：例如 elevenlabs
+    的 voice 是 voice_id，fishaudio 的 voice 是 reference_id（可留空用默认音色）。
+    """
 
     name: str
     model: str
     voice: str
     speed: float = 1.0
+    provider: str = "openai"
 
     def supports_speed(self) -> bool:
-        # gpt-4o-mini-tts 不支持 speed 参数。
-        return self.model in ("tts-1", "tts-1-hd")
+        # 只有部分 provider/模型支持 speed 参数；不支持时忽略该字段。
+        if self.provider == "openai":
+            return self.model in ("tts-1", "tts-1-hd")
+        return self.provider in ("minimax", "doubao")
+
+
+# ---------------------------------------------------------------------------
+# 多 provider 注册表（对应书中「接入主流服务：OpenAI、ElevenLabs、Fish Audio、
+# Minimax、豆包」）。每个 provider 声明所需环境变量与一个代表性配置，便于跨服务商
+# 横向对比。除 OpenAI 外均按各家公开 REST 接口实现，缺 key 时该 provider 的行会被
+# 记为失败而不影响整表（见 demo.py）。
+# ---------------------------------------------------------------------------
+@dataclass
+class ProviderInfo:
+    key: str                # 内部标识（--providers 用）
+    label: str              # 展示名
+    env: tuple              # 该 provider 合成所需的环境变量名
+    note: str               # 一句话说明 voice 字段语义等
+
+    def configured(self) -> bool:
+        import os
+        return all(os.environ.get(e, "").strip() for e in self.env)
+
+
+PROVIDERS = {
+    "openai": ProviderInfo(
+        "openai", "OpenAI", ("OPENAI_API_KEY",),
+        "voice=alloy/nova/…，model=tts-1/tts-1-hd/gpt-4o-mini-tts；本仓库唯一端到端验证过的 provider。",
+    ),
+    "elevenlabs": ProviderInfo(
+        "elevenlabs", "ElevenLabs", ("ELEVENLABS_API_KEY",),
+        "voice=voice_id，model 默认 eleven_multilingual_v2（多语言/中文）。",
+    ),
+    "fishaudio": ProviderInfo(
+        "fishaudio", "Fish Audio", ("FISHAUDIO_API_KEY",),
+        "voice=reference_id（留空用默认音色），走 /v1/tts。",
+    ),
+    "minimax": ProviderInfo(
+        "minimax", "Minimax", ("MINIMAX_API_KEY", "MINIMAX_GROUP_ID"),
+        "voice=voice_id，model 默认 speech-01-turbo；需额外 GroupId。",
+    ),
+    "doubao": ProviderInfo(
+        "doubao", "豆包（火山引擎）", ("DOUBAO_APP_ID", "DOUBAO_ACCESS_TOKEN"),
+        "voice=voice_type，走 openspeech.bytedance.com；鉴权头为 'Bearer;{token}'。",
+    ),
+}
+
+# 各 provider 的代表性配置（--providers 选中时，每个 provider 取这一条参与对比）。
+# 非 OpenAI 的 voice/model 取各家常见默认值，可在此按账号可用音色调整。
+PROVIDER_CONFIGS = {
+    "openai": TTSConfig("openai-alloy", provider="openai", model="tts-1", voice="alloy"),
+    "elevenlabs": TTSConfig("elevenlabs-multi", provider="elevenlabs",
+                            model="eleven_multilingual_v2", voice="21m00Tcm4TlvDq8ikWAM"),
+    "fishaudio": TTSConfig("fishaudio-default", provider="fishaudio",
+                          model="speech-1.5", voice=""),
+    "minimax": TTSConfig("minimax-turbo", provider="minimax",
+                        model="speech-01-turbo", voice="male-qn-qingse"),
+    "doubao": TTSConfig("doubao-tts", provider="doubao",
+                       model="volcano_tts", voice="zh_female_qingxin"),
+}
 
 
 # 默认对比的配置集合：覆盖 model（tts-1 vs tts-1-hd）、voice、speed 三个维度，
-# 便于观察不同配置在准确性/自然度上的差异。
+# 便于观察不同配置在准确性/自然度上的差异。默认全部走 OpenAI 以保证零额外配置跑通。
 TTS_CONFIGS = [
     TTSConfig("tts1-alloy-1.0", model="tts-1", voice="alloy", speed=1.0),
     TTSConfig("tts1hd-alloy-1.0", model="tts-1-hd", voice="alloy", speed=1.0),

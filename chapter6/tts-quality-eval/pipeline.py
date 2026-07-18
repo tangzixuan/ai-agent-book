@@ -40,19 +40,127 @@ def get_client() -> OpenAI:
 
 
 # ---------------------------------------------------------------------------
-# 1) TTS 合成
+# 1) TTS 合成（多 provider 分发）
 # ---------------------------------------------------------------------------
 def synthesize(cfg: config.TTSConfig, text: str, out_path: str) -> None:
-    """用指定配置合成语音并写入 out_path（mp3）。失败抛异常。"""
+    """按 cfg.provider 分发到对应服务商合成语音，写入 out_path（mp3）。失败抛异常。
+
+    OpenAI 走官方 SDK；其余服务商按各家公开 REST 接口用内置 urllib 调用，
+    不引入额外依赖。缺少对应 key 时抛出带上下文的异常，由上层记为该行失败。
+    """
+    fn = _SYNTH_DISPATCH.get(cfg.provider)
+    if fn is None:
+        raise RuntimeError(
+            f"未知 provider: {cfg.provider!r}（可选：{', '.join(_SYNTH_DISPATCH)}）"
+        )
+    audio = fn(cfg, text)
+    if not audio:
+        raise RuntimeError(f"{cfg.provider} TTS 返回空音频")
+    with open(out_path, "wb") as f:
+        f.write(audio)
+
+
+def _require_env(name: str) -> str:
+    val = os.environ.get(name, "").strip()
+    if not val:
+        raise RuntimeError(f"缺少环境变量 {name}，无法用该 provider 合成。")
+    return val
+
+
+def _http_post(url: str, body: dict, headers: dict, timeout: float = 90.0) -> bytes:
+    """POST JSON，返回原始响应字节。非 2xx 抛出带响应体片段的异常。"""
+    import urllib.error
+    import urllib.request
+    req = urllib.request.Request(
+        url, data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json", **headers}, method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.read()
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", "replace")[:300]
+        raise RuntimeError(f"HTTP {e.code}: {detail}") from None
+
+
+def _synth_openai(cfg: config.TTSConfig, text: str) -> bytes:
     kwargs = dict(model=cfg.model, voice=cfg.voice, input=text)
     if cfg.supports_speed() and abs(cfg.speed - 1.0) > 1e-6:
         kwargs["speed"] = cfg.speed
-    resp = get_client().audio.speech.create(**kwargs)
-    audio = resp.content
-    if not audio:
-        raise RuntimeError("TTS 返回空音频")
-    with open(out_path, "wb") as f:
-        f.write(audio)
+    return get_client().audio.speech.create(**kwargs).content
+
+
+def _synth_elevenlabs(cfg: config.TTSConfig, text: str) -> bytes:
+    key = _require_env("ELEVENLABS_API_KEY")
+    voice = cfg.voice or "21m00Tcm4TlvDq8ikWAM"
+    url = (f"https://api.elevenlabs.io/v1/text-to-speech/{voice}"
+           f"?output_format=mp3_44100_128")
+    body = {"text": text, "model_id": cfg.model or "eleven_multilingual_v2"}
+    # ElevenLabs 返回原始 mp3 字节。
+    return _http_post(url, body, {"xi-api-key": key, "Accept": "audio/mpeg"})
+
+
+def _synth_fishaudio(cfg: config.TTSConfig, text: str) -> bytes:
+    key = _require_env("FISHAUDIO_API_KEY")
+    body = {"text": text, "format": "mp3"}
+    if cfg.voice:
+        body["reference_id"] = cfg.voice
+    # Fish Audio /v1/tts 接受 JSON，直接返回音频字节。
+    return _http_post("https://api.fish.audio/v1/tts", body,
+                      {"Authorization": f"Bearer {key}"})
+
+
+def _synth_minimax(cfg: config.TTSConfig, text: str) -> bytes:
+    key = _require_env("MINIMAX_API_KEY")
+    group = _require_env("MINIMAX_GROUP_ID")
+    url = f"https://api.minimax.chat/v1/t2a_v2?GroupId={group}"
+    body = {
+        "model": cfg.model or "speech-01-turbo",
+        "text": text,
+        "stream": False,
+        "voice_setting": {"voice_id": cfg.voice, "speed": cfg.speed},
+        "audio_setting": {"format": "mp3", "sample_rate": 32000},
+    }
+    raw = _http_post(url, body, {"Authorization": f"Bearer {key}"})
+    data = json.loads(raw)
+    # 返回 JSON，音频为 data.audio（hex 编码）。
+    hexstr = (data.get("data") or {}).get("audio")
+    if not hexstr:
+        err = data.get("base_resp", {})
+        raise RuntimeError(f"Minimax 无音频返回：{err or data}")
+    return bytes.fromhex(hexstr)
+
+
+def _synth_doubao(cfg: config.TTSConfig, text: str) -> bytes:
+    import uuid
+    appid = _require_env("DOUBAO_APP_ID")
+    token = _require_env("DOUBAO_ACCESS_TOKEN")
+    body = {
+        "app": {"appid": appid, "token": token,
+                "cluster": cfg.model or "volcano_tts"},
+        "user": {"uid": "tts-quality-eval"},
+        "audio": {"voice_type": cfg.voice, "encoding": "mp3",
+                  "speed_ratio": cfg.speed},
+        "request": {"reqid": str(uuid.uuid4()), "text": text, "operation": "query"},
+    }
+    # 火山引擎鉴权头是特殊的 'Bearer;{token}' 形式；音频为 base64 编码的 data 字段。
+    raw = _http_post("https://openspeech.bytedance.com/api/v1/tts", body,
+                     {"Authorization": f"Bearer;{token}"})
+    data = json.loads(raw)
+    b64 = data.get("data")
+    if not b64:
+        raise RuntimeError(f"豆包无音频返回：code={data.get('code')} "
+                           f"message={data.get('message')}")
+    return base64.b64decode(b64)
+
+
+_SYNTH_DISPATCH = {
+    "openai": _synth_openai,
+    "elevenlabs": _synth_elevenlabs,
+    "fishaudio": _synth_fishaudio,
+    "minimax": _synth_minimax,
+    "doubao": _synth_doubao,
+}
 
 
 # ---------------------------------------------------------------------------
@@ -145,6 +253,17 @@ def char_error_rate(reference: str, hypothesis: str) -> ErrorRate:
 # ---------------------------------------------------------------------------
 RUBRIC_DIMENSIONS = ["清晰度", "自然度", "停顿节奏", "整体"]
 
+# 维度说明（供 --dump-rubric 离线打印，也是评审 prompt 的依据）。括号内标注与书中
+# 四维度（准确性 / 自然度 / 情感表达 / 音色一致性）的对应关系。
+RUBRIC_DESCRIPTIONS = {
+    "清晰度": "转写与原文是否高度一致，漏字/错字/多字越多分越低（对应书中「准确性」）。",
+    "自然度": "语速是否接近自然朗读（中文约 4-6 字/秒），过快>7 或过慢<3 都不自然。",
+    "停顿节奏": "结合语速与文本长度判断停顿/节奏是否合理，过快通常意味吞字、节奏差。",
+    "整体": "综合以上给出的总体印象分。",
+}
+# 说明：默认（回译）评审看不到音频，无法覆盖书中「情感表达 / 音色一致性」；这两维需
+# 多模态直接听音频，用 --gemini 复现（音色一致性还需参考语音，本 demo 未提供）。
+
 _JUDGE_SYSTEM = """你是严格的 TTS（文本转语音）质量评审专家。
 你将拿到：原始参考文本、该文本的期望情感、由 Whisper 对合成语音回译得到的转写文本，
 以及从音频客观测得的时长、语速（字/秒）和字错误率（CER）。
@@ -172,8 +291,8 @@ class RubricResult:
 
 
 def judge_rubric(reference: str, emotion: str, hypothesis: str,
-                 duration: float, cer: float) -> RubricResult:
-    """用 gpt-4o-mini 按 Rubric 打分。返回结构化分数 + 点评。"""
+                 duration: float, cer: float, model: Optional[str] = None) -> RubricResult:
+    """用评审模型（默认 gpt-4o-mini）按 Rubric 打分。返回结构化分数 + 点评。"""
     chars = len(normalize(reference))
     speed = chars / duration if duration > 0 else 0.0
     user = (
@@ -185,7 +304,7 @@ def judge_rubric(reference: str, emotion: str, hypothesis: str,
         f"字错误率 CER：{cer:.3f}\n"
     )
     resp = get_client().chat.completions.create(
-        model=config.JUDGE_MODEL,
+        model=model or config.JUDGE_MODEL,
         messages=[{"role": "system", "content": _JUDGE_SYSTEM},
                   {"role": "user", "content": user}],
         temperature=0.0,
