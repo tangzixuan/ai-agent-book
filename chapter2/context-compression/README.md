@@ -236,6 +236,45 @@ Based on the compression strategies:
 4. **With Citations**: ✅ Best for follow-ups, slightly larger
 5. **Windowed Context**: ✅ Most efficient for long conversations
 
+## Measured Results (real run)
+
+The numbers below are from a **real** end-to-end run — no mock data. Every strategy
+used live Serper web search (real 2026 web pages fetched and crawled) and the current
+Moonshot reasoning model.
+
+- **Model**: `kimi-k3` (Moonshot reasoning model; real window ~1M tokens, but the demo caps
+  the compression/overflow budget at `CONTEXT_WINDOW_SIZE = 128000`)
+- **Search**: real Serper (`google.serper.dev`) web search + page crawling
+- **Task**: 识别并追踪 OpenAI 联合创始人的职业状态 (track current affiliations of the ~11 OpenAI co-founders)
+- **Run date**: 2026-07-18 · `MAX_ITERATIONS=15` · raw JSON: `results/kimi_k3_real_20260718.json`
+
+Columns: **Tokens** = cumulative Kimi API token usage (prompt + completion across all
+iterations); **Compress** = compressed chars / original chars (smaller = compressed harder);
+**Overflows** = times the 128K budget was approached/exceeded.
+
+| # | Strategy | Success | Iterations | Tokens | Compress | Overflows | Time |
+|---|----------|---------|-----------|--------|----------|-----------|------|
+| 1 | `no_compression` | ❌ (overflow at 165,227 tok > 128K) | 5 | 166,043 | 102.1% | 1 | 107s |
+| 2 | `non_context_aware_individual_summary` | ✅ | 12 | 276,608 | 10.9% | 4 | 2980s |
+| 3 | `non_context_aware_combined_summary` | ✅ | 10 | 93,449 | 4.3% | 0 | 1189s |
+| 4 | `context_aware_summary` | ✅ | 7 | 40,157 | 3.0% | 0 | 967s |
+| 5 | `context_aware_with_citations` | ✅ | 10 | 222,992 | 4.1% | 3 | 1235s |
+| 6 | `windowed_context` | ✅ | 7 | 174,601 | 102.4% | 4 | 867s |
+
+Notes:
+- **No compression** fails exactly as designed: context overflows the 128K budget
+  (165,227 tokens used) around the 5th iteration.
+- **Context-aware summary (#4)** is the most token-efficient successful strategy
+  (40,157 tokens, 3.0% char compression) — it compresses hardest while still solving the task.
+- **Individual summaries (#2)** are by far the slowest (~50 min) because each fetched page
+  is summarized separately by the reasoning model; token usage is also the highest.
+- **Windowed context (#6)** only compresses when prompt usage crosses the 80% threshold
+  (≈102,400 tokens), then batch-compresses all uncompressed tool messages at once; because
+  it keeps recent full content, its char-level "compression ratio" stays ~100% while it
+  still completes the task fastest among the compressing strategies.
+- These are single-run measurements with a reasoning model and live web search, so absolute
+  numbers will vary run to run; the relative ordering is the takeaway.
+
 ## Configuration
 
 Edit `.env` or `config.py` for:
