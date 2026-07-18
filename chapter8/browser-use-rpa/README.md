@@ -67,13 +67,13 @@ cp env.example .env
 ### 基本用法
 
 ```python
-from browser_use import ChatOpenAI
 from learning_agent import LearningAgent
+from llm_factory import make_llm  # 包装层 LLM 工厂：OpenAI 直连，缺 Key 时 OpenRouter 兜底
 
 # 创建学习Agent
 agent = LearningAgent(
     task="发送邮件给test@example.com，主题是'测试'，内容是'这是一封测试邮件'",
-    llm=ChatOpenAI(model="gpt-4o-mini"),
+    llm=make_llm(),  # 默认 gpt-5.6-luna；无 OPENAI_API_KEY 时走 OpenRouter 兜底
     knowledge_base_path="./knowledge_base",
     headless=False  # 显示浏览器界面
 )
@@ -117,7 +117,7 @@ python demo_weather.py
 |-----|------|-------|
 | `--task` | 学习阶段的任务描述 | 向 test@example.com 发送测试邮件 |
 | `--replay-task` | 回放阶段的任务描述（参数不同、流程相同） | 向 another@example.com 发送邮件 |
-| `--model` | 大模型；`gpt-*` 走 OpenAI，`gemini-*` 走 Google | `gpt-4o-mini` |
+| `--model` | 大模型；`gpt-*` 走 OpenAI（缺 Key 时 OpenRouter 兜底），`gemini-*` 走 Google | `gpt-5.6-luna` |
 | `--headless` | 以无界面模式运行浏览器 | 显示窗口 |
 | `--knowledge-base` | 工作流知识库存储目录 | `./email_knowledge` |
 | `--max-steps` | 学习阶段最大操作步数 | `20` |

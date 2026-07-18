@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 
 from browser_use import ChatOpenAI, ChatGoogle
 from learning_agent import LearningAgent
+from llm_factory import make_llm, DEFAULT_MODEL
 
 
 # Configure logging
@@ -43,7 +44,7 @@ and message "This email is sent using a learned workflow. No LLM calls needed!"
 class EmailDemo:
     """Demo for email sending with learning capability."""
     
-    def __init__(self, llm_model="gpt-4o-mini", knowledge_base_path="./email_knowledge",
+    def __init__(self, llm_model=DEFAULT_MODEL, knowledge_base_path="./email_knowledge",
                  headless=False, max_steps=20, learning_task=None, replay_task=None,
                  output_path=None):
         self.llm_model = llm_model
@@ -257,16 +258,11 @@ class EmailDemo:
         print(f"\n💾 Results saved to: {self.output_path}")
 
     def _get_llm(self):
-        """Get LLM instance based on configuration."""
-        if self.llm_model.startswith("gpt"):
-            return ChatOpenAI(model=self.llm_model)
-        elif self.llm_model.startswith("gemini"):
-            return ChatGoogle(model=self.llm_model)
-        else:
-            return ChatOpenAI(model="gpt-4o-mini")
+        """Get LLM instance based on configuration (OpenAI 直连，缺 Key 时 OpenRouter 兜底)。"""
+        return make_llm(self.llm_model)
 
 
-async def quick_test(model="gpt-4o-mini", headless=False, max_steps=15,
+async def quick_test(model=DEFAULT_MODEL, headless=False, max_steps=15,
                      knowledge_base_path="./test_knowledge", task=None):
     """Quick test with a single simple task (no replay comparison)."""
     print("\n🧪 QUICK TEST - Simple Email Task")
@@ -274,7 +270,7 @@ async def quick_test(model="gpt-4o-mini", headless=False, max_steps=15,
 
     task = task or "Go to ethereal.email and send a test email to demo@test.com"
 
-    llm = ChatGoogle(model=model) if model.startswith("gemini") else ChatOpenAI(model=model)
+    llm = make_llm(model)
     agent = LearningAgent(
         task=task,
         llm=llm,
@@ -319,8 +315,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="回放阶段的任务描述，参数不同但流程相同（默认：向 another@example.com 发送邮件）",
     )
     parser.add_argument(
-        "--model", default="gpt-4o-mini",
-        help="使用的大模型，gpt-* 走 OpenAI，gemini-* 走 Google（默认：gpt-4o-mini）",
+        "--model", default=DEFAULT_MODEL,
+        help="使用的大模型，gpt-* 走 OpenAI（缺 Key 时走 OpenRouter 兜底），"
+             "gemini-* 走 Google（默认：gpt-5.6-luna）",
     )
     parser.add_argument(
         "--headless", action="store_true",

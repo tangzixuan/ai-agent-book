@@ -28,6 +28,20 @@ import time
 
 from tools_library import TASKS, grade, select_tools, ALL_TOOLS
 
+
+def _to_openrouter_model(model: str) -> str:
+    """把常见模型名映射到 OpenRouter 命名空间（用于无 OPENAI_API_KEY 的兜底路径）。"""
+    if not model:
+        return "openai/gpt-5.6-luna"
+    if "/" in model:
+        return model
+    if model.startswith("gpt-"):
+        return "openai/" + model
+    if model.startswith("claude-"):
+        return "anthropic/claude-opus-4.8"
+    return "openai/gpt-5.6-luna"
+
+
 # 策略注册表：key -> (中文名, 需要 index 吗)
 STRATEGIES = {
     "full": ("全量注入", False),
@@ -62,8 +76,8 @@ def build_parser() -> argparse.ArgumentParser:
                     help="主动发现中 discover_tools 每次返回的候选工具数（默认 4）。")
     ap.add_argument("--prefilter-n", type=int, default=10, metavar="N",
                     help="检索预筛选一次性注入的候选工具数（默认 10）。")
-    ap.add_argument("--model", default=os.getenv("MODEL", "gpt-4o-mini"), metavar="NAME",
-                    help="对话模型名（默认取环境变量 MODEL 或 gpt-4o-mini）；离线模式下忽略。")
+    ap.add_argument("--model", default=os.getenv("MODEL", "gpt-5.6-luna"), metavar="NAME",
+                    help="对话模型名（默认取环境变量 MODEL 或 gpt-5.6-luna）；离线模式下忽略。")
     ap.add_argument("--embed-model", default=os.getenv("EMBED_MODEL", "text-embedding-3-small"),
                     metavar="NAME", help="嵌入模型名（默认 text-embedding-3-small）；离线模式下忽略。")
     ap.add_argument("--max-steps", type=int, default=10, metavar="N",
@@ -156,13 +170,27 @@ def main():
                   "或改用 --offline 离线自检。")
             sys.exit(1)
         load_dotenv()
-        if not os.getenv("OPENAI_API_KEY"):
-            print("请先设置 OPENAI_API_KEY（见 env.example），或改用 --offline 离线自检。")
-            sys.exit(1)
         from discovery import OpenAIEmbedder, ToolIndex
-        client = OpenAI()
-        model = args.model
-        embedder = OpenAIEmbedder(client, model=args.embed_model)
+        if os.getenv("OPENAI_API_KEY"):
+            # 直连 OpenAI：chat + embeddings 都走 OpenAI
+            client = OpenAI()
+            model = args.model
+            embedder = OpenAIEmbedder(client, model=args.embed_model)
+        elif os.getenv("OPENROUTER_API_KEY"):
+            # 统一兜底：OpenRouter 只代理 chat completions，没有 embeddings 接口，
+            # 因此对话走 OpenRouter（真实模型），工具检索改用本地哈希嵌入。
+            from offline_backend import LocalEmbedder
+            client = OpenAI(api_key=os.getenv("OPENROUTER_API_KEY"),
+                            base_url="https://openrouter.ai/api/v1")
+            model = _to_openrouter_model(args.model)
+            embedder = LocalEmbedder()
+            print("未检测到 OPENAI_API_KEY，改走 OpenRouter 兜底：")
+            print(f"  · 对话模型: {model}（真实调用）")
+            print("  · 工具检索: 本地哈希嵌入（OpenRouter 无 embeddings 接口）。")
+        else:
+            print("请设置 OPENAI_API_KEY 或 OPENROUTER_API_KEY（见 env.example），"
+                  "或改用 --offline 离线自检。")
+            sys.exit(1)
 
     index = ToolIndex(embedder, tools=tools) if need_index else None
 

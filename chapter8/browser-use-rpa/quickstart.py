@@ -9,6 +9,7 @@ import asyncio
 from dotenv import load_dotenv
 from browser_use import ChatOpenAI, ChatGoogle
 from learning_agent import LearningAgent
+from llm_factory import make_llm
 
 # Load environment variables
 load_dotenv()
@@ -21,7 +22,7 @@ async def example_search():
     
     agent = LearningAgent(
         task="Go to Google and search for 'browser automation with AI'",
-        llm=ChatOpenAI(model="gpt-4o-mini"),
+        llm=make_llm(),
         knowledge_base_path="./my_knowledge",
         headless=False  # Show browser
     )
@@ -78,7 +79,7 @@ async def example_custom_task():
     
     agent = LearningAgent(
         task=task,
-        llm=ChatOpenAI(model="gpt-4o-mini"),
+        llm=make_llm(),
         knowledge_base_path="./my_knowledge",
         headless=False
     )

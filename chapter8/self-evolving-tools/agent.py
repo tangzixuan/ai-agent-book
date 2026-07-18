@@ -8,8 +8,9 @@
     → code_interpreter 沙箱测试 → create_tool 封装入库 → 用新工具完成任务。
 再次遇到同类任务时，应先 search_tools 复用已有工具，而非重新搜索创建。
 
-模型：OpenAI SDK，默认 gpt-4o-mini，function calling。
-可通过 LLM_PROVIDER=openai|moonshot|ark 切换（三者均为 OpenAI 兼容接口）。
+模型：OpenAI SDK，默认 gpt-5.6-luna，function calling。
+可通过 LLM_PROVIDER=openai|moonshot|ark 切换（三者均为 OpenAI 兼容接口）；
+若对应 Key 缺失但设置了 OPENROUTER_API_KEY，则自动改走 OpenRouter 兜底。
 """
 
 import json
@@ -30,19 +31,41 @@ from tool_manager import ToolLibrary, normalize_schema
 # LLM 客户端（OpenAI / Moonshot / ARK 都是 OpenAI 兼容接口）
 # --------------------------------------------------------------------------- #
 _PROVIDERS = {
-    "openai": ("OPENAI_API_KEY", None, "gpt-4o-mini"),
+    "openai": ("OPENAI_API_KEY", None, "gpt-5.6-luna"),
     "moonshot": ("MOONSHOT_API_KEY", "https://api.moonshot.cn/v1", "kimi-k3"),
     "ark": ("ARK_API_KEY", "https://ark.cn-beijing.volces.com/api/v3", "doubao-seed-1-6-250615"),
 }
+
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
+
+def _to_openrouter_model(model: str) -> str:
+    """把常见模型名映射到 OpenRouter 命名空间。"""
+    if not model:
+        return "openai/gpt-5.6-luna"
+    if "/" in model:
+        return model
+    if model.startswith("gpt-"):
+        return "openai/" + model
+    if model.startswith("claude-"):
+        return "anthropic/claude-opus-4.8"
+    return "openai/gpt-5.6-luna"
 
 
 def build_client():
     provider = os.environ.get("LLM_PROVIDER", "openai").lower()
     key_env, base_url, default_model = _PROVIDERS.get(provider, _PROVIDERS["openai"])
-    api_key = os.environ.get(key_env)
-    if not api_key:
-        raise RuntimeError(f"missing {key_env} in environment (provider={provider})")
     model = os.environ.get("LLM_MODEL", default_model)
+    api_key = os.environ.get(key_env)
+    # 统一兜底：provider 自己的 Key 缺失，但有 OPENROUTER_API_KEY 时改走 OpenRouter
+    if not api_key and os.environ.get("OPENROUTER_API_KEY"):
+        client = OpenAI(api_key=os.environ["OPENROUTER_API_KEY"], base_url=OPENROUTER_BASE_URL)
+        return client, _to_openrouter_model(model)
+    if not api_key:
+        raise RuntimeError(
+            f"missing {key_env} in environment (provider={provider})；"
+            f"也未设置 OPENROUTER_API_KEY（OpenRouter 可作为统一兜底）。"
+        )
     client = OpenAI(api_key=api_key, base_url=base_url) if base_url else OpenAI(api_key=api_key)
     return client, model
 

@@ -56,7 +56,8 @@
 
 ```bash
 pip install -r requirements.txt
-cp env.example .env        # 填入 OPENAI_API_KEY（默认模型 gpt-4o-mini）
+cp env.example .env        # 填入 OPENAI_API_KEY（默认模型 gpt-5.6-luna）
+# 兜底：若无 OPENAI_API_KEY 但设置了 OPENROUTER_API_KEY，自动改走 OpenRouter（映射到 openai/gpt-5.6-luna 等）
 python demo.py             # 跑「进化 + 复用」两个默认任务（需 API + 联网）
 python demo.py --fresh     # 先清空 tool_library/ 再跑，重现「从零进化」（重复演示时推荐）
 python demo.py --offline   # 离线机制自检：无需 API/网络，验证进化闭环本身

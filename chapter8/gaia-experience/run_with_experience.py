@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any, Dict, List
 from dotenv import load_dotenv
 
+from llm_env import resolve_llm, DEFAULT_MODEL
+
 # The heavy runtime dependencies (AWorld framework + local experience
 # components, which pull in sentence-transformers / faiss) are imported lazily
 # via _load_runtime() so that `--help` and argument parsing work even when the
@@ -82,7 +84,7 @@ def parse_arguments():
             "  python run_with_experience.py --compare --start 10 --end 20 \\\n"
             "      --experience-db ./learned_experiences.json\n\n"
             "  # 5) 指定主 Agent 模型与结果输出路径\n"
-            "  python run_with_experience.py --apply-experience --model gpt-4o \\\n"
+            "  python run_with_experience.py --apply-experience --model gpt-5.6-luna \\\n"
             "      --output ./results/exp_run.json --start 0 --end 5\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -129,13 +131,13 @@ def parse_arguments():
         "--model",
         type=str,
         default=None,
-        help="主 Agent 使用的模型名；缺省时读取环境变量 LLM_MODEL_NAME（默认 gpt-4o）",
+        help="主 Agent 使用的模型名；缺省时读取环境变量 LLM_MODEL_NAME（默认 gpt-5.6-luna）",
     )
     parser.add_argument(
         "--summary-model",
         type=str,
-        default="gpt-4o-mini",
-        help="用于轨迹总结（经验提炼）的模型（默认：gpt-4o-mini）",
+        default=DEFAULT_MODEL,
+        help="用于轨迹总结（经验提炼）的模型（默认：gpt-5.6-luna）",
     )
     parser.add_argument(
         "--embedding-model",
@@ -244,11 +246,9 @@ async def run_with_experience(args):
     
     # Setup agent configuration. The main agent model can be overridden via the
     # --model CLI flag; otherwise it falls back to the LLM_MODEL_NAME env var.
+    # OpenAI 直连优先，缺 Key 时自动走 OpenRouter 兜底（见 llm_env.resolve_llm）。
     agent_config = AgentConfig(
-        llm_provider=os.getenv("LLM_PROVIDER", "openai"),
-        llm_model_name=args.model or os.getenv("LLM_MODEL_NAME", "gpt-4o"),
-        llm_base_url=os.getenv("LLM_BASE_URL"),
-        llm_api_key=os.getenv("LLM_API_KEY"),
+        **resolve_llm(model_override=args.model),
         llm_temperature=float(os.getenv("LLM_TEMPERATURE", "0.0"))
     )
     
@@ -274,7 +274,7 @@ async def run_with_experience(args):
         logger.info("Initializing trajectory summarizer...")
         summarizer = TrajectorySummarizer(
             llm_config=agent_config,
-            model_name=args.summary_model
+            model_name=resolve_llm(model_override=args.summary_model)["llm_model_name"]
         )
     
     # Create experience agent
@@ -522,10 +522,7 @@ async def run_comparison(args):
     mcp_config, available_servers = load_mcp_config(mcp_config_path)
 
     agent_config = AgentConfig(
-        llm_provider=os.getenv("LLM_PROVIDER", "openai"),
-        llm_model_name=args.model or os.getenv("LLM_MODEL_NAME", "gpt-4o"),
-        llm_base_url=os.getenv("LLM_BASE_URL"),
-        llm_api_key=os.getenv("LLM_API_KEY"),
+        **resolve_llm(model_override=args.model),
         llm_temperature=float(os.getenv("LLM_TEMPERATURE", "0.0")),
     )
 

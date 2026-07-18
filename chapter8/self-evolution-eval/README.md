@@ -57,7 +57,7 @@ schema 见 `agent.py` 顶部注释），输出四层各自分数与总评：
 
 ```python
 from harness import FourLayerEvaluator
-evaluator = FourLayerEvaluator(judge_model="gpt-4o-mini")          # 默认四层全跑
+evaluator = FourLayerEvaluator(judge_model="gpt-5.6-luna")          # 默认四层全跑
 # 只跑确定性层（不需要联网）：evaluator = FourLayerEvaluator(layers=("L1","L2","L4"))
 report = evaluator.evaluate(task, first_trajectory, variant_trajectory)
 print(report["layers"], report["summary"]["overall"])
@@ -70,7 +70,7 @@ print(report["layers"], report["summary"]["overall"])
 
 ```bash
 pip install -r requirements.txt
-cp env.example .env      # 填入 OPENAI_API_KEY（默认 provider=openai, 模型 gpt-4o-mini）
+cp env.example .env      # 填入 OPENAI_API_KEY（默认 provider=openai, 模型 gpt-5.6-luna）
 python demo.py                       # 默认：strong 跑 3 个任务 + weak 对照 1 个（联网，含 L3）
 python demo.py --quick               # 快速演示：strong / weak 各只跑 1 个任务，省时省钱
 python demo.py --tasks task-01,task-07   # 指定要评估的任务 id
@@ -153,12 +153,13 @@ weak（坏发现：选了废弃库 pytube + 粗糙 stub + 从不复用）：
 
 ## 配置说明 / 如何适配
 
-- **换模型**：`AGENT_MODEL`（被测 Agent 造工具）、`JUDGE_MODEL`（第 3 层裁判，可换 `gpt-4o` 更严格）。
+- **换模型**：`AGENT_MODEL`（被测 Agent 造工具）、`JUDGE_MODEL`（第 3 层裁判，默认 `gpt-5.6-luna`）。
 - **换供应商 / 网关**：默认 `PROVIDER=openai`，读 `OPENAI_API_KEY`；也支持 `PROVIDER=moonshot`（`MOONSHOT_API_KEY`）
   或 `PROVIDER=ark`（`ARK_API_KEY`），会自动切换 base_url 与默认模型（见 `config.py`）。
 - **换任务 / 输入**：编辑 `dataset.json` 新增任务（保持"只说目标、不暗示工具名"原则），或用 `--tasks task-xx,...`
   指定评估哪几条；把你自己 Agent 的轨迹按 `agent.py` 顶部 schema 喂给 `FourLayerEvaluator.evaluate` 即可评估真实 Agent。
-- **请勿使用** OPENROUTER / ANTHROPIC / DEEPSEEK / SILICONFLOW 的 Key（当前不可用）。
+- **统一兜底**：若所选 provider 的 Key 缺失，但设置了 `OPENROUTER_API_KEY`，会自动改走 OpenRouter，
+  并把模型名映射到 `openai/gpt-5.6-luna` / `anthropic/claude-opus-4.8` 等（见 `config.py`）。
 
 ## 局限
 

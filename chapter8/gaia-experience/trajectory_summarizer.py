@@ -21,7 +21,7 @@ class TrajectorySummarizer:
     def __init__(
         self,
         llm_config: Optional[AgentConfig] = None,
-        model_name: str = "gpt-4o-mini",
+        model_name: str = "gpt-5.6-luna",
         temperature: float = 0.3
     ):
         """

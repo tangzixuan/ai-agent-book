@@ -139,7 +139,7 @@ def layer3_tool_quality(task: dict, trajectory: dict, judge_model: Optional[str]
         return {"score": None, "detail": "本次轨迹未创造新工具（可能为复用），L3 不适用。"}
 
     tool = created[0]
-    model = judge_model or Config.JUDGE_MODEL
+    model = Config.map_model(judge_model or Config.JUDGE_MODEL)
     client = Config.get_client()
     user = (
         f"任务目标：{task['goal']}\n\n"

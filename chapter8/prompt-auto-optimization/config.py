@@ -1,13 +1,21 @@
 """
 统一的 LLM 客户端配置。
 
-默认使用 OpenAI（读取 OPENAI_API_KEY，模型 gpt-4o-mini）。
+默认使用 OpenAI（读取 OPENAI_API_KEY，模型 gpt-5.6-luna）。
 也支持通过环境变量 LLM_PROVIDER 切换到 Moonshot / 火山方舟(ARK)，
 它们都兼容 OpenAI 的 Chat Completions + 工具调用接口。
 
     export LLM_PROVIDER=openai   # 默认
     export LLM_PROVIDER=moonshot # 用 MOONSHOT_API_KEY
     export LLM_PROVIDER=ark      # 用 ARK_API_KEY，并需设置 ARK_MODEL
+
+统一的 OpenRouter 兜底（fallback）：
+    若所选 provider 自己的 Key 缺失，但设置了 OPENROUTER_API_KEY，则自动改走
+    OpenRouter（https://openrouter.ai/api/v1），并把模型名映射到 OpenRouter 命名：
+        gpt-*     -> openai/gpt-*
+        claude-*  -> anthropic/claude-opus-4.8
+        含 "/"    -> 原样透传
+        其它      -> openai/gpt-5.6-luna
 """
 
 import os
@@ -16,12 +24,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
 # 各提供商的默认配置：base_url / 环境变量名 / 默认模型
 _PROVIDERS = {
     "openai": {
         "base_url": None,  # 使用 SDK 默认
         "key_env": "OPENAI_API_KEY",
-        "default_model": "gpt-4o-mini",
+        "default_model": "gpt-5.6-luna",
     },
     "moonshot": {
         "base_url": "https://api.moonshot.cn/v1",
@@ -41,15 +51,34 @@ def get_provider() -> str:
     return os.getenv("LLM_PROVIDER", "openai").lower().strip()
 
 
+def _to_openrouter_model(model: str) -> str:
+    """把常见模型名映射到 OpenRouter 命名空间。"""
+    if not model:
+        return "openai/gpt-5.6-luna"
+    if "/" in model:
+        return model
+    if model.startswith("gpt-"):
+        return "openai/" + model
+    if model.startswith("claude-"):
+        return "anthropic/claude-opus-4.8"
+    return "openai/gpt-5.6-luna"
+
+
+def _use_openrouter(cfg: dict) -> bool:
+    """provider 自己的 Key 缺失、但有 OPENROUTER_API_KEY 时，走 OpenRouter 兜底。"""
+    return (not os.getenv(cfg["key_env"])) and bool(os.getenv("OPENROUTER_API_KEY"))
+
+
 def get_model() -> str:
-    """允许用 LLM_MODEL 覆盖默认模型。"""
-    override = os.getenv("LLM_MODEL")
-    if override:
-        return override
+    """允许用 LLM_MODEL 覆盖默认模型；OpenRouter 兜底路径下映射模型名。"""
     provider = get_provider()
     if provider not in _PROVIDERS:
         raise ValueError(f"未知的 LLM_PROVIDER: {provider}")
-    return _PROVIDERS[provider]["default_model"]
+    cfg = _PROVIDERS[provider]
+    model = os.getenv("LLM_MODEL") or cfg["default_model"]
+    if _use_openrouter(cfg):
+        return _to_openrouter_model(model)
+    return model
 
 
 def get_client() -> OpenAI:
@@ -57,10 +86,13 @@ def get_client() -> OpenAI:
     if provider not in _PROVIDERS:
         raise ValueError(f"未知的 LLM_PROVIDER: {provider}")
     cfg = _PROVIDERS[provider]
+    if _use_openrouter(cfg):
+        return OpenAI(api_key=os.getenv("OPENROUTER_API_KEY"), base_url=OPENROUTER_BASE_URL)
     api_key = os.getenv(cfg["key_env"])
     if not api_key:
         raise RuntimeError(
-            f"环境变量 {cfg['key_env']} 未设置。请参考 env.example 配置后重试。"
+            f"环境变量 {cfg['key_env']} 未设置，也未设置 OPENROUTER_API_KEY。"
+            f"请参考 env.example 配置其一（OpenRouter 可作为统一兜底）后重试。"
         )
     kwargs = {"api_key": api_key}
     if cfg["base_url"]:

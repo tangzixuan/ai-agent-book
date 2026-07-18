@@ -77,9 +77,11 @@ Create a `.env` file:
 ```env
 # LLM Configuration
 LLM_PROVIDER=openai
-LLM_MODEL_NAME=gpt-4o
+LLM_MODEL_NAME=gpt-5.6-luna
 LLM_API_KEY=your_api_key_here
 LLM_BASE_URL=https://api.openai.com/v1  # Optional
+# 兜底：若 LLM_API_KEY/OPENAI_API_KEY 都缺失但设了 OPENROUTER_API_KEY，自动走 OpenRouter（映射到 openai/gpt-5.6-luna 等）
+# OPENROUTER_API_KEY=sk-or-...
 
 # Dataset paths
 GAIA_DATASET_PATH=./AWorld/examples/gaia/GAIA
@@ -142,8 +144,8 @@ See [A/B 对照实验](#-ab-对照实验reproduce-the-experiments-point) for the
 | `--experience-db` | Path to store learned experiences | ./learned_experiences.json |
 | `--validation-file` | Path to gaia-validation.jsonl | gaia-validation.jsonl |
 | `--embedding-model` | Sentence transformer model | all-MiniLM-L6-v2 |
-| `--summary-model` | Model for trajectory summarization | gpt-4o-mini |
-| `--model` | Main agent model (overrides `LLM_MODEL_NAME`) | env / gpt-4o |
+| `--summary-model` | Model for trajectory summarization | gpt-5.6-luna |
+| `--model` | Main agent model (overrides `LLM_MODEL_NAME`) | env / gpt-5.6-luna |
 | `--output` | Results JSON output path | `$AWORLD_WORKSPACE/experience_results.json` |
 | `--start` | Start index of dataset | 0 |
 | `--end` | End index of dataset | 20 |
