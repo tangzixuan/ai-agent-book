@@ -81,7 +81,7 @@ Intuitively, the higher the utilization, the more non-linearly the wait time inc
 >
 > **Acceptance Criteria**: Successfully make a test call (can first call your own phone to verify connectivity). The Agent can autonomously determine call parameters based on the task description. After the call ends, it correctly extracts key information (appointment time, confirmation number, etc.) and reports it to the user. Compare the difference between using the API directly and calling it through the Agent's ReAct loop—the latter can handle situations with incomplete information (e.g., searching for the phone number if the user didn't provide it).
 >
-> This experiment demonstrates an important application direction for voice Agents: **Agents can not only have voice conversations with users but also interact with the outside world via phone calls on behalf of the user**. PineClaw's voice Agent is specifically trained to handle hour-long waits, phone menu navigation, and complex negotiations—imagine having an AI wait on hold for a customer service operator for you. These are precisely the scenarios where traditional serial voice pipelines struggle.### Full-Chain Streaming for Cascaded Pipelines
+> This experiment demonstrates an important application direction for voice Agents: **Agents can not only have voice conversations with users but also interact with the outside world via phone calls on behalf of the user**. PineClaw's voice Agent is specifically trained to handle hour-long waits, phone menu navigation, and complex negotiations—imagine having an AI wait on hold for a customer service operator for you. These are precisely the scenarios where traditional serial voice pipelines struggle.
 
 ### Full-Chain Streaming of the Cascaded Pipeline
 
