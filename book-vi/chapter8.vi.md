@@ -27,7 +27,7 @@ Chương này tập trung vào con đường không làm thay đổi trọng lư
 Tại sao nó lại cần thiết? Trước tiên hãy xem xét một kịch bản tiêu cực. Giả sử đại diện dịch vụ khách hàng Agent lần đầu tiên xử lý quy trình hoàn tiền của một ngân hàng nhất định: sau 15 phút tìm hiểu—thực hiện ba cuộc gọi điện thoại và thử hai phương pháp—việc hoàn tiền cuối cùng đã hoàn tất thành công. Nếu nó thiếu khả năng học hỏi từ bên ngoài, lần tiếp theo nó gặp phải yêu cầu tương tự, nó sẽ phải mất lại 15 phút để thực hiện lại cùng một hành trình khám phá. Kinh nghiệm tích lũy lần này sẽ biến mất khi phiên kết thúc. Mấu chốt nằm ở chữ “tự chủ”: thay vì các kỹ sư con người chuẩn bị tài liệu cho Agent, Agent tổng hợp kinh nghiệm, xây dựng công cụ, cập nhật nền tảng kiến thức trong quá trình hoàn thành nhiệm vụ – giống như một chuyên gia dịch vụ khách hàng kỳ cựu tổ chức các quy định hoàn tiền rải rác thành một cuốn sổ tay có thể đọc bất cứ lúc nào và cập nhật độc lập theo tình huống mới. Triết lý cốt lõi là: Thay vì mong đợi mô hình ghi nhớ mọi thứ, tốt hơn là sử dụng sức mạnh tính toán bổ sung để tóm tắt, nén và cấu trúc trải nghiệm sau khi hoàn thành nhiệm vụ, sau đó lưu trữ nó trong một hệ thống bên ngoài bền bỉ và có thể truy xuất được. So với học tham số, phương pháp này có thể nhanh chóng tích lũy kiến thức có thể diễn giải, kiểm chứng và sửa chữa mà không cần đào tạo tốn kém; so với In-Context Learning (học trong ngữ cảnh), nó tránh được việc truy xuất không hiệu quả với lượng lớn thông tin gốc và đạt được tính bền vững giữa các phiên thông qua việc tổ chức có cấu trúc và tinh chỉnh tích cực.
 
 
-![Hình 8-1 Vòng lặp External Learning (học bên ngoài tham số mô hình) ](images_vi/fig8-1.svg)
+![Hình 8-1 Vòng lặp External Learning (học bên ngoài tham số mô hình) ](images/fig8-1.svg)
 
 
 Quan trọng hơn, External Learning (học bên ngoài tham số mô hình) cải thiện khả năng học tập của Agent từ "ghi nhớ thông tin" đến "khả năng xây dựng": nó không chỉ có thể tóm tắt kinh nghiệm thành kiến thức tóm tắt và lưu trữ trong cơ sở kiến thức để truy xuất sau này (RAPTOR được giới thiệu trong Chương 3 RAG Quy nạp hình cây cũng phù hợp để tinh chỉnh kinh nghiệm theo từng lớp - từ các bản ghi hoạt động cụ thể đến các quy tắc, sau đó đến các nguyên tắc). Nó cũng có thể gói gọn các quy trình hoạt động lặp đi lặp lại thành các công cụ có thể được thực thi chính xác để tạo thành một thư viện kỹ năng ngày càng phát triển. Ví dụ: Đại diện dịch vụ khách hàng Agent có thể học được ba điều khác nhau khi giúp khách hàng xử lý khoản tiền hoàn lại. Danh mục đầu tiên là một quy tắc cụ thể - "Việc hoàn tiền của Công ty A phải xác minh bốn chữ số cuối của thẻ tín dụng". Đây là kiến thức thực tế và có thể được lưu trữ trong cơ sở kiến thức; loại thứ hai là một công cụ chung - "Sử dụng Bảng 8-1 tóm tắt ba sản phẩm này được tạo ra bởi quá trình học tập hóa học bên ngoài.
@@ -62,7 +62,7 @@ Bảng 8-2 Agent trải nghiệm cơ chế học tập phân lớp
 
 Bốn cấp độ trên được đan xen trong nội dung tiếp theo - tóm tắt chiến lược, ghi lại quy trình làm việc và học hỏi từ những thất bại (tinh chỉnh kiến thức), chuyển đổi tự nhiên sang Kỹ năng và tích hợp giấc ngủ (tổ chức kiến thức), sau đó tối ưu hóa từ nhắc nhở hệ thống (ứng dụng kiến thức) và cuối cùng kết thúc bằng việc tiếp tục các nhiệm vụ dài trong nhiều phiên (hỗ trợ kỹ thuật).
 
-![Hình 8-2 Học tóm tắt chính sách trong vòng khép kín ứng dụng thử nghiệm GAIA ](images_vi/fig8-2.svg)
+![Hình 8-2 Học tóm tắt chính sách trong vòng khép kín ứng dụng thử nghiệm GAIA ](images/fig8-2.svg)
 
 
 > **Thử nghiệm 8-1 ★★: Học hỏi từ kinh nghiệm thành công: Tóm tắt chiến lược**
@@ -191,11 +191,11 @@ Cách tiếp cận truyền thống là đưa lược đồ của tất cả cá
 
 [^mcp-zero-2025]: Fei, X., et al. *MCP-Zero: Active Tool Discovery for Autonomous LLM Agents.* arXiv:2506.01056, 2025.
 
-![Hình 8-3 So khớp công cụ phân cấp (cấp máy chủ → tìm kiếm ngữ nghĩa hai cấp cấp công cụ) ](images_vi/fig8-3.svg)
+![Hình 8-3 So khớp công cụ phân cấp (cấp máy chủ → tìm kiếm ngữ nghĩa hai cấp cấp công cụ) ](images/fig8-3.svg)
 
 **Kết hợp và hạ cấp thứ bậc.** Chìa khóa để so khớp hiệu quả là bản thân tổ chức công cụ có cấu trúc phân cấp: trong các giao thức như MCP, các công cụ được nhóm theo **máy chủ**(tương tự như Ứng dụng trên điện thoại di động, mỗi Ứng dụng cung cấp một tập hợp các chức năng liên quan), do đó, việc so khớp có thể được chia thành hai lớp - trước tiên hãy xác định vị trí các máy chủ có liên quan theo mô tả khả năng và sau đó khớp các công cụ cụ thể trong máy chủ, giảm không gian tìm kiếm từ "hàng nghìn công cụ" xuống "hàng chục máy chủ × hàng chục công cụ trên mỗi máy chủ", điều này không làm giảm không gian tìm kiếm chỉ tiết kiệm sức mạnh tính toán mà còn giảm sự nhầm lẫn ngữ nghĩa giữa các miền. Về mặt kỹ thuật, điều này dựa vào một chỉ mục nhúng được xây dựng ngoại tuyến và hỗ trợ các bản cập nhật gia tăng; nếu độ giống nhau của các ứng viên ở cả hai cấp độ so khớp thấp hơn ngưỡng, "không tìm thấy" phải được trả về một cách rõ ràng, cho phép Agent viết lại các yêu cầu và thử lại, triển khai thủ công bằng các công cụ cơ bản hoặc đơn giản là tạo một công cụ mới (xem phần tiếp theo).
 
-![Hình 8-4 KV Tối ưu hóa bộ đệm ](images_vi/fig8-4.svg) được tải động bởi các công cụ
+![Hình 8-4 KV Tối ưu hóa bộ đệm ](images/fig8-4.svg) được tải động bởi các công cụ
 
 **Tải động với KV Cache.** Khám phá tích cực có chi phí kỹ thuật rất nhỏ: các công cụ tải động sẽ **phá vỡ KV Cache** - nếu bạn đưa danh sách công cụ vào lời nhắc hệ thống, mỗi khi một công cụ mới được tải, toàn bộ bộ đệm sẽ bị vô hiệu. Ý tưởng bẻ khóa cũng giống như khi thảo luận về vị trí chèn Kỹ năng trong Chương 2: nối phần thay đổi (lược đồ hoàn chỉnh của công cụ mới) dưới dạng thông báo người dùng vào cuối cuộc trò chuyện, giữ ổn định tiền tố lời nhắc hệ thống, sử dụng lại hoàn toàn KV Cache và chỉ duy trì một danh sách ngắn các tên công cụ trong thanh trạng thái Agent. Nhưng xin lưu ý một tiền đề: trong function-calling API chính thống, bộ công cụ pháp lý được xác định bởi tham số `tools` được yêu cầu. Mô hình không thể gọi các công cụ "chỉ xuất hiện trong văn bản hội thoại mà không xuất hiện trong tham số `tools`". Do đó, bộ chế độ này dựa vào framework hoặc sự hỗ trợ đặc biệt của API (chẳng hạn như Tool Search Tool đã nói ở trên). Ngoài ra, môi trường công cụ động cũng có yêu cầu cao hơn về khả năng của mô hình - các mô hình có khả năng yếu sẽ khó hiểu các vị trí không chuẩn như "định nghĩa công cụ xuất hiện ở giữa ngữ cảnh" và cũng có xu hướng tạo ra các định dạng gọi bất hợp pháp (chẳng hạn như dấu ngoặc không khớp JSON, thiếu tham số) và thường yêu cầu đào tạo đặc biệt thông qua học tăng cường (xem Chương 7 để biết chi tiết).
 
@@ -253,7 +253,7 @@ Chìa khóa của sự thay đổi mô hình này là biến hệ sinh thái ngu
 ### Agent Tìm và thực thi các công cụ độc lập với Internet
 
 
-![Hình 8-5 Đường dẫn tự phát triển tác nhân (từ xác định yêu cầu đến đăng ký công cụ) ](images_vi/fig8-5.svg)
+![Hình 8-5 Đường dẫn tự phát triển tác nhân (từ xác định yêu cầu đến đăng ký công cụ) ](images/fig8-5.svg)
 
 
 MCP (Model Context Protocol, được giới thiệu chi tiết trong Chương 4) là giao thức chuẩn để Agent khám phá và gọi các công cụ - có thể hiểu là "đặc tả giao tiếp của thị trường công cụ", qua đó Agent duyệt các công cụ có sẵn, hiểu các định dạng đầu vào và đầu ra và bắt đầu các cuộc gọi một cách đáng tin cậy. Lấy hệ thống Alita làm ví dụ và xem xét một nhiệm vụ cụ thể: “Trong video YouTube 360 VR do diễn viên lồng tiếng Gollum thuật lại từ Chúa tể của những chiếc nhẫn phát hành vào tháng 3 năm 2018, người kể chuyện đã đề cập trực tiếp đến con số nào sau khi những con khủng long lần đầu tiên được trình chiếu?” Nhiệm vụ này yêu cầu khả năng miền cụ thể – trích xuất và phân tích nội dung video. Agent sẽ không báo cáo "không thể hoàn thành" mà bắt đầu quá trình tự tiến hóa nhiều giai đoạn:
@@ -278,7 +278,7 @@ Bản thân quá trình tạo tuân theo nhịp điệu thường xuyên của c
 ### Voyager: Học hỏi không ngừng trong thế giới ảo Agent
 
 
-![Hình 8-6 Kiến trúc học tập liên tục của Du hành (trình tạo khóa học → cơ chế nhắc lặp → thư viện kỹ năng) ](images_vi/fig8-6.svg)
+![Hình 8-6 Kiến trúc học tập liên tục của Du hành (trình tạo khóa học → cơ chế nhắc lặp → thư viện kỹ năng) ](images/fig8-6.svg)
 
 
 Trước đây chúng ta đã thảo luận về cách Agent khám phá và tạo các công cụ một cách độc lập. Voyager đưa khái niệm này lên tầm cao mới trong thế giới ảo Minecraft: nó không chỉ sử dụng các công cụ mà còn tạo ra một thư viện kỹ năng có thể tái sử dụng từ những trải nghiệm thành công, thực sự nhận ra quá trình tự phát triển của "bạn càng sử dụng nó nhiều, bạn càng trở nên thành thạo hơn".
@@ -298,7 +298,7 @@ Du hành khám phá một cách tự động trong Minecraft và kho kỹ năng 
 > **Thử nghiệm 8-5 ★★★：Agent Tìm các công cụ trên Internet để đạt được khả năng tự tiến hóa**
 >
 >
-> ![Hình 8-7 Thí nghiệm 8-5 Đường ống Tác nhân tự phát triển (tìm kiếm → đánh giá → kiểm tra → đóng gói → tái sử dụng) ](images_vi/fig8-7.svg)
+> ![Hình 8-7 Thí nghiệm 8-5 Đường ống Tác nhân tự phát triển (tìm kiếm → đánh giá → kiểm tra → đóng gói → tái sử dụng) ](images/fig8-7.svg)
 >
 >
 > **Cấu hình công cụ cơ bản**: chỉ `web_search`, `read_webpage`, `code_interpreter`, `create_tool`, `search_tools`. Không có công cụ được xác định trước cho từng miền cụ thể.

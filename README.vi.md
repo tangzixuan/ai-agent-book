@@ -1,20 +1,27 @@
 # Hiểu sâu về AI Agent: Nguyên lý thiết kế và thực hành kỹ thuật
 
+**[English](README.en.md) | [中文](README.md) | Tiếng Việt**
+
 Kho này là kho mã nguồn mở chính thức của cuốn sách *Hiểu sâu về AI Agent: Nguyên lý thiết kế và thực hành kỹ thuật*, bao gồm **toàn bộ nội dung sách** và **mã ví dụ đi kèm**. Toàn bộ bản thảo, hình minh họa và mã thí nghiệm đều được mở nguồn; hoan nghênh bạn tự chạy các thí nghiệm, gửi issue và PR.
 
 ## 📖 Sách điện tử
 
-Toàn bộ nội dung sách và bản PDF đã biên dịch nằm trong thư mục [`book/`](book/):
+Mã nguồn của bản dịch tiếng Việt nằm trong thư mục [`book-vi/`](book-vi/). Bản
+gốc tiếng Trung ở [`book/`](book/), bản tiếng Anh ở [`book-en/`](book-en/) và
+bản Tamil ở [`book-ta/`](book-ta/).
 
-- **Mã nguồn nội dung**: `book/introduction.md` (lời mở đầu), `book/chapter1.md` ~ `book/chapter10.md` (chương 1 đến chương 10), `book/afterword.md` (lời bạt)
+- **Mã nguồn tiếng Việt**: `book-vi/introduction.vi.md` (lời mở đầu),
+  `book-vi/chapter1.vi.md` ~ `book-vi/chapter10.vi.md` (chương 1 đến chương 10),
+  `book-vi/afterword.vi.md` (lời bạt)
 - **Bản PDF đã biên dịch**: [PDF bản gốc tiếng Trung](book/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-AI-Agent-%E6%9D%8E%E5%8D%9A%E6%9D%B0-v1.1.pdf)
 - **Tự biên dịch**: sau khi cài pandoc, xelatex, lớp tài liệu ElegantBook và các phông chữ liên quan, chạy
 
   ```bash
-  cd book && bash build_pdf.sh
+  cd book-vi && bash build_pdf.sh
   ```
 
-  Các biểu đồ được tạo bởi `book/gen_*_figs.py` và lưu trong `book/images/`; chi tiết dàn trang nằm trong `book/preamble.tex` và `book/*.lua`.
+  Hình tiếng Việt nằm trong `book-vi/images/`; chi tiết dàn trang nằm trong
+  `book-vi/preamble.tex` và `book-vi/*.lua`.
 
 ## 📑 Tổng quan nội dung (Chương 1–10)
 
@@ -835,10 +842,10 @@ git clone https://github.com/joonspk-research/generative_agents.git    chapter10
 
 Sách và mã đi kèm đều là mã nguồn mở; rất hoan nghênh cộng đồng cùng xây dựng thông qua Pull Request. Chúng tôi đặc biệt hoan nghênh các loại đóng góp sau:
 
-1. **Cải thiện nội dung sách**: sửa lỗi, bổ sung, diễn đạt rõ hơn, hoặc thêm tiến triển tiên phong mới (nội dung chính xem `book/chapter*.md`)
+1. **Cải thiện nội dung sách**: sửa lỗi, bổ sung, diễn đạt rõ hơn, hoặc thêm tiến triển tiên phong mới (nội dung tiếng Việt xem `book-vi/chapter*.vi.md`)
 2. **Cải thiện mã và sửa Bug**: giúp các dự án đi kèm vững chắc hơn, dễ dùng hơn và gần thực tiễn sản xuất hơn
 3. **Dự án thực hành mới**: bổ sung/thay thế triển khai tốt hơn cho một thí nghiệm, hoặc đóng góp dự án ví dụ hoàn toàn mới
-4. **Cải thiện thiết kế hình minh họa của sách**: làm cho biểu đồ trong `book/images/` rõ ràng và đẹp hơn (hình minh họa được tạo bởi `book/gen_*_figs.py`)
+4. **Cải thiện thiết kế hình minh họa của sách**: làm cho biểu đồ trong `book-vi/images/` rõ ràng và đẹp hơn
 
 Trước khi gửi, khuyến nghị tự chạy các thí nghiệm liên quan để xác nhận có thể tái hiện; cũng hoan nghênh mở issue trước để thảo luận ý tưởng.
 

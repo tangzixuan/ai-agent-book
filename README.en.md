@@ -1,18 +1,19 @@
 # AI Agents in Depth: Design Principles and Engineering Practice
 
-**English | [中文](README.md)**
+**English | [中文](README.md) | [Tiếng Việt](README.vi.md)**
 
 This repository is the open-source main repository for the book *AI Agents in Depth: Design Principles and Engineering Practice*, containing **the full text** and **accompanying example code**. The full text, illustrations, and accompanying experimental code are all open source. You are welcome to run the experiments yourself, submit issues, and PRs.
 
 ## 📖 E-Book
 
-The book is available in two languages:
+The book is available in multiple languages:
 
 - **Chinese PDF (original / 中文原版)**: [`book/深入理解-AI-Agent-李博杰-v1.1.pdf`](book/深入理解-AI-Agent-李博杰-v1.1.pdf)
 - **English PDF** (community-contributed translation by [@nsdevaraj](https://github.com/nsdevaraj)): [`book-en/AI-Agents-in-Depth-Bojie-Li-v1.1.pdf`](book-en/AI-Agents-in-Depth-Bojie-Li-v1.1.pdf)
 - **Tamil PDF** (community-contributed translation by [@nsdevaraj](https://github.com/nsdevaraj)): [`book-ta/AI-Agents-in-Depth-Bojie-Li-v1.1-ta.pdf`](book-ta/AI-Agents-in-Depth-Bojie-Li-v1.1-ta.pdf)
+- **Vietnamese edition source** (community-contributed translation): [`book-vi/`](book-vi/)
 
-The Chinese original lives in [`book/`](book/). The English and Tamil translations are **community-contributed** and live in [`book-en/`](book-en/) and [`book-ta/`](book-ta/) respectively; they may lag behind the Chinese original:
+The Chinese original lives in [`book/`](book/). The English, Tamil, and Vietnamese translations are **community-contributed** and live in [`book-en/`](book-en/), [`book-ta/`](book-ta/), and [`book-vi/`](book-vi/) respectively; they may lag behind the Chinese original:
 
 - **Source text (English)**: `book-en/introduction.md` (Introduction), `book-en/chapter1.md` ~ `book-en/chapter10.md` (Chapters 1–10), `book-en/afterword.md` (Afterword)
 - **Self-compilation**: After installing pandoc, xelatex, the ElegantBook document class, and related fonts, run

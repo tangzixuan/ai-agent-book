@@ -2,7 +2,7 @@
 # Build the Vietnamese translation as a single PDF.
 # Requirements: pandoc, xelatex, ElegantBook class, rsvg-convert/librsvg,
 #               and fonts that support Vietnamese + CJK fallback.
-# Usage: cd book && bash build_pdf_vi.sh
+# Usage: cd book-vi && bash build_pdf.sh
 
 set -e
 set -o pipefail
@@ -28,7 +28,7 @@ for cmd in pandoc xelatex rsvg-convert python3; do
     fi
 done
 
-OUT="Hieu-sau-ve-AI-Agent-ban-tieng-Viet-v1.1.pdf"
+OUT="AI-Agents-in-Depth-Bojie-Li-v1.1-vi.pdf"
 CHAPTERS=(
     introduction.vi.md
     glossary.vi.md
@@ -82,8 +82,8 @@ pandoc "${CHAPTERS[@]}" \
     -V author="Lý Bác Kiệt" \
     --metadata title-meta="Hiểu sâu về AI Agent: Nguyên lý thiết kế và thực hành kỹ thuật" \
     --metadata author-meta="Lý Bác Kiệt" \
-    -H preamble.vi.tex \
-    --include-before-body=cover.vi.tex \
+    -H preamble.tex \
+    --include-before-body=cover.tex \
     --syntax-highlighting=kate \
     --columns=80 \
     > "$LOG" 2>&1 &

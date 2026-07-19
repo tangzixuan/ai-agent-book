@@ -504,7 +504,7 @@ def write_all(files):
     total_wrapped = 0
     total_restored = 0
     for target in files:
-        source = Path("images") / target.name
+        source = Path("../book/images") / target.name
         if not source.exists():
             raise FileNotFoundError(f"missing source SVG: {source}")
         target_root = ET.parse(target).getroot()
@@ -555,7 +555,7 @@ def main():
     mode.add_argument("--write", action="store_true", help="repair SVG files in place")
     mode.add_argument("--check", action="store_true", help="validate without editing files")
     args = parser.parse_args()
-    files = sorted(Path("images_vi").glob("*.svg"))
+    files = sorted(Path("images").glob("*.svg"))
     if len(files) != 118:
         print(f"Expected 118 Vietnamese SVGs, found {len(files)}.", file=sys.stderr)
         return 1
