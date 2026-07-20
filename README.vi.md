@@ -846,6 +846,7 @@ Sách và mã đi kèm đều là mã nguồn mở; rất hoan nghênh cộng đ
 2. **Cải thiện mã và sửa Bug**: giúp các dự án đi kèm vững chắc hơn, dễ dùng hơn và gần thực tiễn sản xuất hơn
 3. **Dự án thực hành mới**: bổ sung/thay thế triển khai tốt hơn cho một thí nghiệm, hoặc đóng góp dự án ví dụ hoàn toàn mới
 4. **Cải thiện thiết kế hình minh họa của sách**: làm cho biểu đồ trong `book-vi/images/` rõ ràng và đẹp hơn
+5. **Bản dịch sang ngôn ngữ mới**: hoan nghênh dịch sách sang thêm nhiều ngôn ngữ — tham khảo cách tổ chức của các bản tiếng Anh (`book-en/`), Tamil (`book-ta/`) và tiếng Việt (`book-vi/`)
 
 Trước khi gửi, khuyến nghị tự chạy các thí nghiệm liên quan để xác nhận có thể tái hiện; cũng hoan nghênh mở issue trước để thảo luận ý tưởng.
 

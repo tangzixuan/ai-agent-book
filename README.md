@@ -847,6 +847,7 @@ git clone https://github.com/joonspk-research/generative_agents.git    chapter10
 2. **代码改进与 Bug 修复**：让配套项目更健壮、更易用、更贴近生产实践
 3. **新的实践项目**：为某个实验补充/替换更好的实现，或贡献全新的示例项目
 4. **书籍配图的设计改进**：让 `book/images/` 中的图表在设计上更清晰、更美观（配图由 `book/gen_*_figs.py` 生成）
+5. **新语言的翻译版本**：欢迎将本书翻译成更多语言，可参考英文（`book-en/`）、泰米尔语（`book-ta/`）、越南语（`book-vi/`）版本的组织方式
 
 提交前建议先把相关实验亲手跑一遍、确认可复现；也欢迎先提 issue 讨论想法。
 
