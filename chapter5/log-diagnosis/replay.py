@@ -72,10 +72,25 @@ def _eval_assertion(assertion: Dict[str, Any], traj: Dict[str, Any]) -> Tuple[bo
     if a_type == "latency_under":
         tool = params.get("tool")
         thr = params.get("threshold_ms") or params.get("threshold")
+        if thr is None:
+            return False, "latency_under 断言缺失阈值设置"
+        try:
+            thr = float(thr)
+        except (TypeError, ValueError):
+            return False, f"latency_under 阈值非法: {thr!r}"
         calls = _tool_turns(traj, tool)
         if not calls:
             return False, f"{tool} 未被调用"
-        worst = max(c.get("latency_ms", 0) for c in calls)
+        latencies = []
+        for c in calls:
+            lat = c.get("latency_ms")
+            if lat is None:
+                lat = 0
+            try:
+                latencies.append(float(lat))
+            except (TypeError, ValueError):
+                latencies.append(0.0)
+        worst = max(latencies) if latencies else 0.0
         ok = worst < thr
         return ok, f"{tool} 最大延迟 {worst}ms, 阈值 {thr}ms"
 
