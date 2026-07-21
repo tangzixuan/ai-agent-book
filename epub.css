@@ -33,10 +33,12 @@ figcaption {
 }
 
 pre {
+  -webkit-overflow-scrolling: touch;
   font-size: 0.82em;
   line-height: 1.45;
-  overflow-wrap: break-word;
-  white-space: pre-wrap;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
 }
 
 code {
