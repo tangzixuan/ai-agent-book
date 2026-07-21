@@ -357,7 +357,7 @@ However, static word vectors have a fundamental limitation: they cannot handle p
 > |-----------------|----------------------------------|--------------------------------------------|
 > | Build Speed | Fast | Slower |
 > | Memory Usage | Low | Higher |
-> | Incremental Updates | Not supported (requires full rebuild) | Supported |
+> | Incremental Updates | Not supported (requires full rebuild) | Supported (but periodic rebuilds recommended after prolonged incremental inserts to maintain query accuracy) |
 > | Query Accuracy | Relatively High | Extremely High |
 > | Applicable Scenarios | Static datasets with infrequent changes | Dynamic scenarios requiring real-time indexing of new information |
 >

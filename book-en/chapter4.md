@@ -1,6 +1,6 @@
 # Tools
 
-In the sci-fi film *Her*, the AI assistant Samantha can proactively organize emails, identify emotionally complex messages and suggest refined replies, represent the protagonist in publishing matters, and seamlessly switch between different communication channels. Her intelligence is compelling because she possesses powerful **tools**: interfaces that connect a language-based reasoning system to the real digital world.
+In the sci-fi film *Her*, the AI assistant Samantha can proactively organize emails, identify emotionally complex messages and suggest refined replies, represent the protagonist in publishing matters, and seamlessly switch between different communication channels. Her intelligence is compelling because she possesses powerful **tools**—the "hands, feet, and senses" that connect the language "brain" to the real digital world.
 
 Building such an assistant with today's technology, however, means solving two core challenges:
 
@@ -174,7 +174,7 @@ Perception tools often face the challenge of returning far more information than
 
 ## Execution Tools
 
-Perception tools expand the Agent's working context; execution tools expand its ability to act. But unlike perception tools, execution tools can fail expensively: a file deleted by mistake is gone for good, a bad system command can take down a service, an ill-judged API call can cost real money. Their design must therefore strike a delicate balance between **capability openness** and **security constraints**.
+If perception tools are the Agent's "senses," execution tools are its "hands and feet." But unlike perception tools, execution tools can fail expensively: a file deleted by mistake is gone for good, a bad system command can take down a service, an ill-judged API call can cost real money. Their design must therefore strike a delicate balance between **capability openness** and **security constraints**.
 
 **Hierarchical Design of Security Mechanisms.**
 
