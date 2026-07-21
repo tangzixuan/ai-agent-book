@@ -1,4 +1,4 @@
-# 实验 8-4：主动工具发现（Active Tool Discovery）
+# 实验 4-6：主动工具发现（Active Tool Discovery）
 
 > 《深入理解 AI Agent》配套代码 · ★★★
 >
