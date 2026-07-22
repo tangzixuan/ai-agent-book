@@ -89,10 +89,20 @@ class GraphRAGIndexer:
             if current_size + len(words) > self.config.chunk_size:
                 if current_chunk:
                     chunks.append(" ".join(current_chunk))
-                # Start new chunk with overlap
-                overlap_size = min(self.config.chunk_overlap, len(current_chunk))
-                current_chunk = current_chunk[-overlap_size:] if overlap_size > 0 else []
-                current_size = sum(len(s.split()) for s in current_chunk)
+                # Start new chunk with overlap. chunk_overlap is a WORD budget
+                # (the same unit as chunk_size, which current_size is measured
+                # in); len(current_chunk) is a SENTENCE count, so using it here
+                # kept the whole previous chunk and the window never advanced.
+                overlap: List[str] = []
+                overlap_size = 0
+                for prev in reversed(current_chunk):
+                    prev_size = len(prev.split())
+                    if overlap_size + prev_size > self.config.chunk_overlap:
+                        break
+                    overlap.insert(0, prev)
+                    overlap_size += prev_size
+                current_chunk = overlap
+                current_size = overlap_size
             
             current_chunk.append(sentence)
             current_size += len(words)
