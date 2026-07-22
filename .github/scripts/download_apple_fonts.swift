@@ -23,7 +23,15 @@ func isAvailable(_ family: String) -> Bool {
     // CoreText falls back to a default font when the family is missing, so
     // confirm the resolved font really has the requested family name.
     let font = CTFontCreateWithFontDescriptor(desc, 12, nil)
-    return CTFontCopyFamilyName(font) as String == family
+    guard CTFontCopyFamilyName(font) as String == family else { return false }
+    // CoreText registers on-demand fonts (dimmed in Font Book) before they are
+    // downloaded; the family name then matches but there is no font file yet,
+    // and renderers quietly substitute another font. Require a real file.
+    guard let url = CTFontCopyAttribute(font, kCTFontURLAttribute) as? URL else {
+        print("\(family): registered but no font file on disk")
+        return false
+    }
+    return FileManager.default.fileExists(atPath: url.path)
 }
 
 var failed = false
