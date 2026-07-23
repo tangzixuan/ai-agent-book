@@ -1,10 +1,10 @@
 # 深入理解 AI Agent：設計原理與工程實踐
 
-[![線上閱讀](https://img.shields.io/badge/🌐_線上閱讀-bojieli.github.io-success?style=flat-square)](https://bojieli.github.io/ai-agent-book/) [![Stars](https://img.shields.io/github/stars/bojieli/ai-agent-book?style=social)](https://github.com/bojieli/ai-agent-book) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../../LICENSE) [![PDF](https://img.shields.io/badge/PDF-%E4%B8%8B%E8%BC%89-success.svg)](#-電子書) [![Languages](https://img.shields.io/badge/翻譯-6%20種%20語言-informational.svg)](#-電子書)
+[![PDF](https://img.shields.io/badge/PDF-%E4%B8%8B%E8%BC%89-success.svg)](#-電子書) [![線上閱讀](https://img.shields.io/badge/🌐_線上閱讀-bojieli.github.io-success?style=flat-square)](https://bojieli.github.io/ai-agent-book/) [![Stars](https://img.shields.io/github/stars/bojieli/ai-agent-book?style=social)](https://github.com/bojieli/ai-agent-book) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../../LICENSE) [![Languages](https://img.shields.io/badge/翻譯-6%20種%20語言-informational.svg)](#-電子書)
 
 **[中文](../../README.md) · 正體中文 ← 當前 · [English](../en/README.md) · [Русский](../ru/README.md) · [Tiếng Việt](../vi/README.md) · [தமிழ்](../ta/README.md)**
 
-> 🌐 **[線上閱讀](https://bojieli.github.io/ai-agent-book/)** — 支援多語言切換、章節摺疊、全文搜尋、配套實驗直達,每次 main 分支推送後自動重新構建。
+> 📥 **[下載 PDF / EPUB](#-電子書)**（推薦）— 推薦使用 PDF / EPUB 離線閱讀，排版最佳；也可[線上閱讀](https://bojieli.github.io/ai-agent-book/)（支援多語言切換、章節摺疊、全文搜尋，每次 main 分支推送後自動重新構建）。
 
 **Agent = LLM + 上下文 + 工具**——本書圍繞這個核心公式，用 10 章把 AI Agent 從原理講到工程實戰。全書正文、配圖、**92 個配套實驗**全部開源，歡迎親手把實驗跑一遍。
 
@@ -13,13 +13,15 @@
 
 ## 📖 電子書
 
-> 📥 **直接下載**（全書正文，開源免費）。以下連結始終指向 main 分支的最新建置；固定版本見 [Releases](https://github.com/bojieli/ai-agent-book/releases)：
+> 📥 **直接下載**（推薦，全書正文，開源免費）。以下連結始終指向 main 分支的最新建置；固定版本見 [Releases](https://github.com/bojieli/ai-agent-book/releases)：
 > - **中文（原版）**：[PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-zh-CN.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-zh-CN.epub)
 > - **正體中文**（社群翻譯，by [@tigercosmos](https://github.com/tigercosmos)）：[PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-zh-TW.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-zh-TW.epub)
 > - **英文**（社群翻譯，by [@nsdevaraj](https://github.com/nsdevaraj)）：[PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-en.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-en.epub)
 > - **俄語**（社群翻譯，by [@ui99ru](https://github.com/ui99ru)）：[PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-ru.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-ru.epub)
 > - **泰米爾語**（社群翻譯，by [@nsdevaraj](https://github.com/nsdevaraj)）：[PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-ta.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-ta.epub)
 > - **越南語**（社群翻譯，by [@toanalien](https://github.com/toanalien)）：[PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-vi.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-vi.epub)
+>
+> 🌐 也可[線上閱讀](https://bojieli.github.io/ai-agent-book/) — 支援多語言切換、章節摺疊、全文搜尋、配套實驗直達，每次 main 分支推送後自動重新構建。
 
 中文正文原始碼位於 [`book/`](../../book/)；正體中文/英文/俄語/泰米爾/越南語版本為社群貢獻（可能滯後於中文原版），分別位於 [`book-zhtw/`](../../book-zhtw/)、[`book-en/`](../../book-en/)、[`book-ru/`](../../book-ru/)、[`book-ta/`](../../book-ta/)、[`book-vi/`](../../book-vi/)。
 

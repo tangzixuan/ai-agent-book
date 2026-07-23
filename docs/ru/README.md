@@ -1,10 +1,10 @@
 # Глубокое понимание AI Agent: принципы проектирования и инженерная практика
 
-[![Читать онлайн](https://img.shields.io/badge/🌐_Читать_онлайн-bojieli.github.io-success?style=flat-square)](https://bojieli.github.io/ai-agent-book/) [![Stars](https://img.shields.io/github/stars/bojieli/ai-agent-book?style=social)](https://github.com/bojieli/ai-agent-book) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../../LICENSE) [![PDF](https://img.shields.io/badge/PDF-%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-success.svg)](#-электронная-книга) [![Languages](https://img.shields.io/badge/переводов-6%20языков-informational.svg)](#-электронная-книга)
+[![PDF](https://img.shields.io/badge/PDF-%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-success.svg)](#-электронная-книга) [![Читать онлайн](https://img.shields.io/badge/🌐_Читать_онлайн-bojieli.github.io-success?style=flat-square)](https://bojieli.github.io/ai-agent-book/) [![Stars](https://img.shields.io/github/stars/bojieli/ai-agent-book?style=social)](https://github.com/bojieli/ai-agent-book) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../../LICENSE) [![Languages](https://img.shields.io/badge/переводов-6%20языков-informational.svg)](#-электронная-книга)
 
 **[中文](../../README.md) · [正體中文](../zh-TW/README.md) · [English](../en/README.md) · Русский ← текущий · [Tiếng Việt](../vi/README.md) · [தமிழ்](../ta/README.md)**
 
-> 🌐 **[Читать онлайн](https://bojieli.github.io/ai-agent-book/)** — Переключатель языков, сворачиваемое оглавление, полнотекстовый поиск и прямые ссылки на сопутствующие эксперименты. Сайт автоматически перестраивается при каждом пуше в main.
+> 📥 **[Скачать PDF / EPUB](#-электронная-книга)** (рекомендуется) — рекомендуем читать книгу в PDF / EPUB, там лучшая вёрстка; также доступно [чтение онлайн](https://bojieli.github.io/ai-agent-book/) (переключатель языков, сворачиваемое оглавление, полнотекстовый поиск; сайт автоматически перестраивается при каждом пуше в main).
 
 **Агент = LLM + Контекст + Инструменты** — книга строится вокруг этой базовой формулы и за 10 глав ведёт AI Agent от принципов к инженерной практике. Весь текст, иллюстрации и **92 сопутствующих эксперимента** открыты. Приглашаем прогнать эксперименты своими руками.
 
@@ -13,13 +13,15 @@
 
 ## 📖 Электронная книга
 
-> 📥 **Скачать** (полный текст, бесплатно и открыто). Ссылки всегда указывают на свежую сборку ветки `main`; фиксированные издания — на странице [Releases](https://github.com/bojieli/ai-agent-book/releases):
+> 📥 **Скачать** (рекомендуется; полный текст, бесплатно и открыто). Ссылки всегда указывают на свежую сборку ветки `main`; фиксированные издания — на странице [Releases](https://github.com/bojieli/ai-agent-book/releases):
 > - **Китайский (оригинал)**: [PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-zh-CN.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-zh-CN.epub)
 > - **Китайский традиционный (Тайвань)** (перевод сообщества, [@tigercosmos](https://github.com/tigercosmos)): [PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-zh-TW.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-zh-TW.epub)
 > - **Английский** (перевод сообщества, [@nsdevaraj](https://github.com/nsdevaraj)): [PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-en.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-en.epub)
 > - **Русский** (перевод сообщества, [@ui99ru](https://github.com/ui99ru)): [PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-ru.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-ru.epub)
 > - **Тамильский** (перевод сообщества, [@nsdevaraj](https://github.com/nsdevaraj)): [PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-ta.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-ta.epub)
 > - **Вьетнамский** (перевод сообщества, [@toanalien](https://github.com/toanalien)): [PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-vi.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-vi.epub)
+>
+> 🌐 Также доступно [чтение онлайн](https://bojieli.github.io/ai-agent-book/) — переключатель языков, сворачиваемое оглавление, полнотекстовый поиск и прямые ссылки на сопутствующие эксперименты. Сайт автоматически перестраивается при каждом пуше в main.
 
 Исходник китайского текста — в [`book/`](../../book/); версии на традиционном китайском (Тайвань)/английском/русском/тамильском/вьетнамском — вклад сообщества (могут отставать от китайского оригинала), расположены в [`book-zhtw/`](../../book-zhtw/), [`book-en/`](../../book-en/), [`book-ru/`](../../book-ru/), [`book-ta/`](../../book-ta/), [`book-vi/`](../../book-vi/) соответственно.
 

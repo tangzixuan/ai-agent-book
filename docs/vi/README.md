@@ -1,10 +1,10 @@
 # Hiểu sâu về AI Agent: Nguyên lý thiết kế và thực hành kỹ thuật
 
-[![Đọc trực tuyến](https://img.shields.io/badge/🌐_Đọc_trực_tuyến-bojieli.github.io-success?style=flat-square)](https://bojieli.github.io/ai-agent-book/) [![Stars](https://img.shields.io/github/stars/bojieli/ai-agent-book?style=social)](https://github.com/bojieli/ai-agent-book) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../../LICENSE) [![PDF](https://img.shields.io/badge/PDF-tải%20về-success.svg)](#-sách-điện-tử) [![Languages](https://img.shields.io/badge/dịch-6%20ngôn%20ngữ-informational.svg)](#-sách-điện-tử)
+[![PDF](https://img.shields.io/badge/PDF-tải%20về-success.svg)](#-sách-điện-tử) [![Đọc trực tuyến](https://img.shields.io/badge/🌐_Đọc_trực_tuyến-bojieli.github.io-success?style=flat-square)](https://bojieli.github.io/ai-agent-book/) [![Stars](https://img.shields.io/github/stars/bojieli/ai-agent-book?style=social)](https://github.com/bojieli/ai-agent-book) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../../LICENSE) [![Languages](https://img.shields.io/badge/dịch-6%20ngôn%20ngữ-informational.svg)](#-sách-điện-tử)
 
 **[中文](../../README.md) · [正體中文](../zh-TW/README.md) · [English](../en/README.md) · [Русский](../ru/README.md) · Tiếng Việt ← hiện tại · [தமிழ்](../ta/README.md)**
 
-> 🌐 **[Đọc trực tuyến](https://bojieli.github.io/ai-agent-book/)** — Chuyển đổi ngôn ngữ, mục lục đóng/mở được, tìm kiếm toàn văn và liên kết trực tiếp đến các thí nghiệm kèm theo. Tự động xây dựng lại sau mỗi lần đẩy (push) lên main.
+> 📥 **[Tải PDF / EPUB](#-sách-điện-tử)** (khuyên dùng) — nên đọc sách qua bản PDF / EPUB để có trải nghiệm tốt nhất; bạn cũng có thể [đọc trực tuyến](https://bojieli.github.io/ai-agent-book/) (chuyển đổi ngôn ngữ, mục lục đóng/mở được, tìm kiếm toàn văn; tự động xây dựng lại sau mỗi lần đẩy lên main).
 
 **Agent = LLM + Context + Tools** — Cuốn sách xây dựng trên công thức cốt lõi này qua 10 chương, đưa AI Agent từ nguyên lý đến thực hành kỹ thuật. Toàn bộ nội dung, hình minh họa và **92 thí nghiệm đi kèm** đều là mã nguồn mở. Hoan nghênh bạn tự chạy các thí nghiệm.
 
@@ -13,13 +13,15 @@
 
 ## 📖 Sách điện tử
 
-> 📥 **Tải xuống PDF / EPUB** (toàn bộ nội dung, mã nguồn mở miễn phí). Các liên kết này luôn trỏ tới bản dựng mới nhất của nhánh `main`; bản cố định xem tại [Releases](https://github.com/bojieli/ai-agent-book/releases):
+> 📥 **Tải xuống PDF / EPUB** (khuyên dùng; toàn bộ nội dung, mã nguồn mở miễn phí). Các liên kết này luôn trỏ tới bản dựng mới nhất của nhánh `main`; bản cố định xem tại [Releases](https://github.com/bojieli/ai-agent-book/releases):
 > - **Bản gốc tiếng Trung**：[PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-zh-CN.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-zh-CN.epub)
 > - **Trung phồn thể (Đài Loan)**（dịch cộng đồng, by [@tigercosmos](https://github.com/tigercosmos)）：[PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-zh-TW.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-zh-TW.epub)
 > - **Tiếng Anh**（dịch cộng đồng, by [@nsdevaraj](https://github.com/nsdevaraj)）：[PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-en.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-en.epub)
 > - **Tiếng Nga**（dịch cộng đồng, by [@ui99ru](https://github.com/ui99ru)）：[PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-ru.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-ru.epub)
 > - **Tiếng Tamil**（dịch cộng đồng, by [@nsdevaraj](https://github.com/nsdevaraj)）：[PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-ta.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-ta.epub)
 > - **Tiếng Việt**（dịch cộng đồng, by [@toanalien](https://github.com/toanalien)）：[PDF](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-vi.pdf) · [EPUB](https://github.com/bojieli/ai-agent-book/releases/download/latest/AI-Agents-in-Depth-vi.epub)
+>
+> 🌐 Bạn cũng có thể [đọc trực tuyến](https://bojieli.github.io/ai-agent-book/) — chuyển đổi ngôn ngữ, mục lục đóng/mở được, tìm kiếm toàn văn và liên kết trực tiếp đến các thí nghiệm kèm theo. Tự động xây dựng lại sau mỗi lần đẩy lên main.
 
 Mã nguồn tiếng Trung nằm trong [`book/`](../../book/); các bản Trung phồn thể (Đài Loan)/Anh/Nga/Tamil/Việt là đóng góp cộng đồng (có thể chậm hơn bản gốc), nằm trong [`book-zhtw/`](../../book-zhtw/), [`book-en/`](../../book-en/), [`book-ru/`](../../book-ru/), [`book-ta/`](../../book-ta/), [`book-vi/`](../../book-vi/).
 
