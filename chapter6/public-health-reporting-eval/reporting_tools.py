@@ -26,7 +26,8 @@ class ReportingEnvironment:
             for raw_row in csv.DictReader(handle):
                 row: dict[str, Any] = dict(raw_row)
                 for field in INTEGER_FIELDS:
-                    row[field] = int(row[field])
+                    raw = row[field]
+                    row[field] = int(raw) if str(raw).strip() else 0
                 self.rows.append(row)
 
     def _select(self, **filters: str) -> list[dict[str, Any]]:
