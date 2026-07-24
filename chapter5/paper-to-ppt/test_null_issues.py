@@ -30,4 +30,3 @@ def test_non_dict_issue_items_dropped():
     text = summarize_review({"overall_score": 40, "pass": False, "issues": [None, {"severity": "high"}]})
     assert "high=1" in text
     assert "issues=1" in text
-
